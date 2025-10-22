@@ -1295,115 +1295,188 @@
         reader.readAsDataURL(f);
       });
       qsel('#save-profile').addEventListener('click', async () => {
-        const p = { name: qsel('#owner-name').value, web: qsel('#owner-web').value, bio: qsel('#owner-bio').value, avatar: ownerAvatarEl.src };
+        const profile = { 
+          name: qsel('#owner-name').value, 
+          web: qsel('#owner-web').value, 
+          bio: qsel('#owner-bio').value, 
+          avatar: ownerAvatarEl.src 
+        };
+        
         if (SERVER_URL) {
           try {
-            const res = await fetch(SERVER_URL + '/api/profile', {
+            const response = await fetch(SERVER_URL + '/api/profile', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'x-owner-token': getStoredOwnerToken()
               },
-              body: JSON.stringify(p)
+              body: JSON.stringify(profile)
             });
-            if (!res.ok) throw new Error('err');
+            
+            if (!response.ok) {
+              throw new Error('Failed to save profile');
+            }
+            
             showRetroAlert('✓ PROFILE_DATA_SAVED ✓', 'success');
           }
-          catch (err) { showRetroAlert('✗ SAVE_ERROR // CONNECTION_LOST ✗', 'error'); saveProfileLocal(p); }
-        } else { saveProfileLocal(p); showRetroAlert('✓ PROFILE_DATA_SAVED ✓', 'success'); }
-        // reflect in sidebar
-        qsel('#profile-name').textContent = p.name; qsel('#profile-bio').textContent = p.bio;
+          catch (error) { 
+            console.error('Error saving profile to server:', error);
+            showRetroAlert('✗ SAVE_ERROR // CONNECTION_LOST ✗', 'error'); 
+            saveProfileLocal(profile); 
+          }
+        } else { 
+          saveProfileLocal(profile); 
+          showRetroAlert('✓ PROFILE_DATA_SAVED ✓', 'success'); 
+        }
+        
+        // Update sidebar to reflect changes
+        qsel('#profile-name').textContent = profile.name; 
+        qsel('#profile-bio').textContent = profile.bio;
+        
         const webLink = qsel('#profile-web');
-        webLink.textContent = p.web || 'mipagina.oldschool';
-        webLink.href = p.web || '#';
-        if (p.web && !p.web.startsWith('http')) webLink.href = 'https://' + p.web;
-        qsel('#profile-avatar').src = p.avatar;
+        webLink.textContent = profile.web || 'mipagina.oldschool';
+        webLink.href = profile.web || '#';
+        if (profile.web && !profile.web.startsWith('http')) {
+          webLink.href = 'https://' + profile.web;
+        }
+        
+        qsel('#profile-avatar').src = profile.avatar;
       });
 
-      // storage event & polling
-      window.addEventListener('storage', (e) => { if (e.key === 'retro_notify') { renderInboxItems(); } });
+      // Start polling for new messages
       startPolling(renderInboxItems);
       renderInboxItems();
     }
 
-    // render inbox items (from server or local)
+    // Render inbox items (from server or local storage)
     async function renderInboxItems() {
       const list = qsel('#inbox-list');
-      // Preserve scroll position before rebuilding
-      const scrollTop = list.scrollTop;
+      const scrollTop = list.scrollTop; // Preserve scroll position
       
-      let arr = [];
+      let messages = [];
       if (SERVER_URL) {
-        try { const res = await fetch(SERVER_URL + '/api/messages', { headers: { 'x-owner-token': getStoredOwnerToken() } }); if (res.ok) { arr = await res.json(); } else { throw new Error('no'); } }
-        catch (err) { console.warn('Error fetching from server, fallback to local'); arr = loadInboxLocal(); }
+        try { 
+          const response = await fetch(SERVER_URL + '/api/messages', { 
+            headers: { 'x-owner-token': getStoredOwnerToken() } 
+          }); 
+          if (response.ok) { 
+            messages = await response.json(); 
+          } else { 
+            throw new Error('Failed to fetch messages'); 
+          } 
+        } catch (error) { 
+          console.warn('Error fetching from server, fallback to local', error); 
+          messages = loadInboxLocal(); 
+        }
       } else {
-        arr = loadInboxLocal();
+        messages = loadInboxLocal();
       }
-      arr = arr.sort((a, b) => b.ts - a.ts);
-      if (arr.length === 0) {
+      
+      // Sort by timestamp descending (newest first)
+      messages = messages.sort((a, b) => b.ts - a.ts);
+      
+      if (messages.length === 0) {
         list.innerHTML = '<div class="p-4 message-box" style="font-size:13px; text-align:center; color: var(--horror-text);">⚠ NO TRANSMISSIONS DETECTED ⚠</div>';
         return;
       }
+      
       list.innerHTML = '';
-      for (const it of arr) {
-        const el = document.createElement('div');
-        el.className = 'p-4 message-box flex gap-3 items-start';
-        el.style.cssText = 'background: var(--horror-gray); border: 1px solid var(--horror-blood); position: relative;';
-        const drawingUrl = it.drawingUrl || it.drawing; // support both server (drawingUrl) and local (drawing)
-        const fullDrawingUrl = drawingUrl && SERVER_URL && !drawingUrl.startsWith('data:') ? SERVER_URL + drawingUrl : drawingUrl;
-        el.innerHTML = `
+      
+      for (const message of messages) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'p-4 message-box flex gap-3 items-start';
+        messageElement.style.cssText = 'background: var(--horror-gray); border: 1px solid var(--horror-blood); position: relative;';
+        
+        const drawingUrl = message.drawingUrl || message.drawing;
+        const fullDrawingUrl = drawingUrl && SERVER_URL && !drawingUrl.startsWith('data:') 
+          ? SERVER_URL + drawingUrl 
+          : drawingUrl;
+        
+        messageElement.innerHTML = `
         <div class="w-2/3" style="font-size:12px; padding-left: 8px;">
-          <div class="font-semibold" style="margin-bottom:6px; color: var(--horror-red); letter-spacing: 1px; text-shadow: 0 0 10px var(--horror-glow);">⚠ TRANSMISSION_${it.id.toUpperCase().slice(0, 6)} · ${new Date(it.ts).toLocaleString()}</div>
-          <div class="mt-1 break-words" style="color: var(--horror-text); line-height: 1.6; padding-left: 4px;">${it.text ? escapeHtml(it.text) : '<i style="opacity:0.6; color: var(--horror-blood);">[NO_TEXT_DATA]</i>'}</div>
+          <div class="font-semibold" style="margin-bottom:6px; color: var(--horror-red); letter-spacing: 1px; text-shadow: 0 0 10px var(--horror-glow);">⚠ TRANSMISSION_${message.id.toUpperCase().slice(0, 6)} · ${new Date(message.ts).toLocaleString()}</div>
+          <div class="mt-1 break-words" style="color: var(--horror-text); line-height: 1.6; padding-left: 4px;">${message.text ? escapeHtml(message.text) : '<i style="opacity:0.6; color: var(--horror-blood);">[NO_TEXT_DATA]</i>'}</div>
         </div>
         <div class="w-1/3 flex flex-col items-end gap-2">
           ${fullDrawingUrl ? `<div class="flex justify-end"><img src="${fullDrawingUrl}" style="max-width:140px; border: 2px solid var(--horror-red); border-radius: 0; box-shadow: 0 0 15px var(--horror-shadow); filter: grayscale(0.3) contrast(1.2);" /></div>` : ''}
-          <button class="btn-retro mark-read" data-id="${it.id}">${it.read ? '✓ READ' : '○ MARK_READ'}</button>
-          ${fullDrawingUrl ? `<a class="btn-retro" href="${fullDrawingUrl}" download="transmission_${it.id}.png" style="text-decoration:none;">⬇ SAVE</a>` : ''}
+          <button class="btn-retro mark-read" data-id="${message.id}">${message.read ? '✓ READ' : '○ MARK_READ'}</button>
+          ${fullDrawingUrl ? `<a class="btn-retro" href="${fullDrawingUrl}" download="transmission_${message.id}.png" style="text-decoration:none;">⬇ SAVE</a>` : ''}
         </div>
       `;
-        list.appendChild(el);
+        list.appendChild(messageElement);
       }
 
-      qselAll('.mark-read').forEach(btn => btn.addEventListener('click', (e) => { const id = e.currentTarget.dataset.id; markRead(id); }));
+      qselAll('.mark-read').forEach(button => {
+        button.addEventListener('click', (event) => { 
+          const messageId = event.currentTarget.dataset.id; 
+          markRead(messageId); 
+        });
+      });
       
       // Restore scroll position after rebuilding
       list.scrollTop = scrollTop;
     }
 
-    function markRead(id) {
+    function markRead(messageId) {
       if (SERVER_URL) {
-        fetch(SERVER_URL + '/api/messages/' + id + '/read', {
+        fetch(SERVER_URL + '/api/messages/' + messageId + '/read', {
           method: 'POST',
           headers: { 'x-owner-token': getStoredOwnerToken() }
         })
           .then(() => renderInboxItems())
           .catch(() => {
-            // fallback local
-            const arr = loadInboxLocal();
-            const idx = arr.findIndex(x => x.id === id);
-            if (idx >= 0) {
-              arr[idx].read = true;
-              saveInboxLocal(arr);
+            // Fallback to local storage
+            const messages = loadInboxLocal();
+            const index = messages.findIndex(msg => msg.id === messageId);
+            if (index >= 0) {
+              messages[index].read = true;
+              saveInboxLocal(messages);
               renderInboxItems();
             }
           });
       } else {
-        const arr = loadInboxLocal();
-        const idx = arr.findIndex(x => x.id === id);
-        if (idx >= 0) {
-          arr[idx].read = true;
-          saveInboxLocal(arr);
+        const messages = loadInboxLocal();
+        const index = messages.findIndex(msg => msg.id === messageId);
+        if (index >= 0) {
+          messages[index].read = true;
+          saveInboxLocal(messages);
           renderInboxItems();
         }
       }
     }
 
     function downloadAllDrawings() {
-      const arr = (SERVER_URL ? [] : loadInboxLocal()).filter(x => x.drawing); if (SERVER_URL) { // try fetch list with drawings URLs
-        fetch(SERVER_URL + '/api/messages').then(r => r.json()).then(data => { data.filter(x => x.drawingUrl).forEach(it => { const a = document.createElement('a'); a.href = SERVER_URL + it.drawingUrl; a.download = 'transmission_' + it.id + '.png'; document.body.appendChild(a); a.click(); a.remove(); }); }).catch(() => showRetroAlert('✗ DOWNLOAD_FAILED // NO_CONNECTION ✗', 'error'));
+      if (SERVER_URL) {
+        fetch(SERVER_URL + '/api/messages')
+          .then(response => response.json())
+          .then(messages => {
+            messages
+              .filter(msg => msg.drawingUrl)
+              .forEach(msg => {
+                const anchor = document.createElement('a');
+                anchor.href = SERVER_URL + msg.drawingUrl;
+                anchor.download = 'transmission_' + msg.id + '.png';
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+              });
+          })
+          .catch(() => showRetroAlert('✗ DOWNLOAD_FAILED // NO_CONNECTION ✗', 'error'));
+      } else {
+        const messages = loadInboxLocal().filter(msg => msg.drawing);
+        if (messages.length === 0) {
+          showRetroAlert('⚠ NO_DRAWINGS_AVAILABLE ⚠', 'info');
+          return;
+        }
+        messages.forEach((msg) => {
+          const anchor = document.createElement('a');
+          anchor.href = msg.drawing;
+          anchor.download = `transmission_${msg.id}.png`;
+          document.body.appendChild(anchor);
+          anchor.click();
+          anchor.remove();
+        });
       }
-      else { if (arr.length === 0) { showRetroAlert('⚠ NO_DRAWINGS_AVAILABLE ⚠', 'info'); return; } arr.forEach((it) => { const a = document.createElement('a'); a.href = it.drawing; a.download = `transmission_${it.id}.png`; document.body.appendChild(a); a.click(); a.remove(); }); }
     }
 
     // polling util - optimizado
@@ -1419,110 +1492,84 @@
     function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, "&#39;"); }
 
     // dataURL -> Blob
-    function dataURLtoBlob(dataurl) { const arr = dataurl.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) { u8arr[n] = bstr.charCodeAt(n); } return new Blob([u8arr], { type: mime }); }
-
-    // Verificar nuevos mensajes y mostrar notificación
-    async function checkForNewMessages() {
-      // Solo verificar si las notificaciones están habilitadas
-      if (!SERVER_URL) return;
-
-      try {
-        const res = await fetch(SERVER_URL + '/api/messages', {
-          headers: { 'x-owner-token': getStoredOwnerToken() }
-        });
-        
-        if (res.ok) {
-          const messages = await res.json();
-          const currentCount = messages.length;
-
-          // Si hay nuevos mensajes (y ya teníamos un conteo previo)
-          if (lastMessageCount > 0 && currentCount > lastMessageCount) {
-            const newMessagesCount = currentCount - lastMessageCount;
-            
-            // Obtener solo los mensajes nuevos
-            const newMessages = messages.slice(0, newMessagesCount);
-          }
-
-          lastMessageCount = currentCount;
-        }
-      } catch (err) {
-        console.warn('Error checking for new messages:', err);
+    function dataURLtoBlob(dataurl) { 
+      const parts = dataurl.split(','); 
+      const mime = parts[0].match(/:(.*?);/)[1]; 
+      const bytes = atob(parts[1]); 
+      const length = bytes.length;
+      const buffer = new Uint8Array(length);
+      for (let i = 0; i < length; i++) {
+        buffer[i] = bytes.charCodeAt(i);
       }
+      return new Blob([buffer], { type: mime }); 
     }
 
-    // Inicializar contador de mensajes (para detectar nuevos)
-    async function initMessageCount() {
-      if (!SERVER_URL) return;
-      
-      try {
-        const res = await fetch(SERVER_URL + '/api/messages', {
-          headers: { 'x-owner-token': getStoredOwnerToken() }
-        });
-        if (res.ok) {
-          const messages = await res.json();
-          lastMessageCount = messages.length;
-        }
-      } catch (err) {
-        console.warn('Could not initialize message count:', err);
-      }
-    }
-
-    // --- Load config from server ---
+    // Load configuration from server
     async function loadConfig() {
-      console.log('🔧 Intentando cargar config desde:', SERVER_URL);
-      if (SERVER_URL) {
-        try {
-          const res = await fetch(SERVER_URL + '/api/config');
-          console.log('📡 Response config:', res.status, res.ok);
-          if (res.ok) {
-            const config = await res.json();
-            DEFAULT_OWNER_TOKEN = config.ownerToken;
-            console.log('✅ Configuración cargada desde el servidor. Token:', DEFAULT_OWNER_TOKEN);
-          } else {
-            console.error('❌ Error al cargar config, status:', res.status);
-          }
-        } catch (err) {
-          console.error('⚠️ No se pudo cargar la configuración del servidor', err);
+      if (!SERVER_URL) {
+        console.warn('⚠️ SERVER_URL is empty, cannot load config');
+        return;
+      }
+      
+      console.log('🔧 Loading config from:', SERVER_URL);
+      try {
+        const response = await fetch(SERVER_URL + '/api/config');
+        console.log('📡 Config response:', response.status, response.ok);
+        
+        if (response.ok) {
+          const config = await response.json();
+          DEFAULT_OWNER_TOKEN = config.ownerToken;
+          console.log('✅ Configuration loaded successfully. Token:', DEFAULT_OWNER_TOKEN);
+        } else {
+          console.error('❌ Error loading config, status:', response.status);
         }
-      } else {
-        console.warn('⚠️ SERVER_URL está vacío, no se puede cargar config');
+      } catch (error) {
+        console.error('⚠️ Could not load server configuration', error);
       }
     }
 
-    // --- initial wiring: set sidebar profile from saved profile ---
+    // Initialize sidebar profile on page load
     (async function initSidebarProfile() {
-      // Primero cargar configuración del servidor
+      // First, load configuration from server
       await loadConfig();
 
-      let p = null;
+      let profile = null;
 
-      // Try to load from server first
+      // Try to load profile from server first
       if (SERVER_URL) {
         try {
-          const res = await fetch(SERVER_URL + '/api/profile');
-          if (res.ok) {
-            p = await res.json();
+          const response = await fetch(SERVER_URL + '/api/profile');
+          if (response.ok) {
+            profile = await response.json();
           }
-        } catch (err) {
-          console.warn('Could not load profile from server, using local fallback', err);
+        } catch (error) {
+          console.warn('Could not load profile from server, using local fallback', error);
         }
       }
 
-      // Fallback to local storage
-      if (!p) p = loadProfileLocal();
-
-      // Update sidebar with profile data
-      if (p) {
-        qsel('#profile-name').textContent = p.name || qsel('#profile-name').textContent;
-        qsel('#profile-bio').textContent = p.bio || qsel('#profile-bio').textContent;
-        const webLink = qsel('#profile-web');
-        webLink.textContent = p.web || webLink.textContent;
-        webLink.href = p.web || '#';
-        if (p.web && !p.web.startsWith('http')) webLink.href = 'https://' + p.web;
-        if (p.avatar) qsel('#profile-avatar').src = p.avatar;
+      // Fallback to local storage if server fetch failed
+      if (!profile) {
+        profile = loadProfileLocal();
       }
 
-      // Render después de cargar todo
+      // Update sidebar with profile data
+      if (profile) {
+        qsel('#profile-name').textContent = profile.name || qsel('#profile-name').textContent;
+        qsel('#profile-bio').textContent = profile.bio || qsel('#profile-bio').textContent;
+        
+        const webLink = qsel('#profile-web');
+        webLink.textContent = profile.web || webLink.textContent;
+        webLink.href = profile.web || '#';
+        if (profile.web && !profile.web.startsWith('http')) {
+          webLink.href = 'https://' + profile.web;
+        }
+        
+        if (profile.avatar) {
+          qsel('#profile-avatar').src = profile.avatar;
+        }
+      }
+
+      // Render the appropriate view after everything is loaded
       render();
     })();
 
