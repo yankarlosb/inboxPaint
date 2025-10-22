@@ -57,7 +57,11 @@ export async function getAllMessages() {
   const result = await pool.query(
     'SELECT id, text, nick, ts, read, drawing_url as "drawingUrl" FROM messages ORDER BY ts DESC'
   );
-  return result.rows;
+  // Convert ts from string to number (PostgreSQL BIGINT returns as string)
+  return result.rows.map(row => ({
+    ...row,
+    ts: parseInt(row.ts, 10)
+  }));
 }
 
 export async function createMessage(message) {

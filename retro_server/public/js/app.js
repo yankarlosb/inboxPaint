@@ -1424,8 +1424,6 @@
     // Verificar nuevos mensajes y mostrar notificación
     async function checkForNewMessages() {
       // Solo verificar si las notificaciones están habilitadas
-      if (!notificationsEnabled) return;
-      if (!('Notification' in window) || Notification.permission !== 'granted') return;
       if (!SERVER_URL) return;
 
       try {
@@ -1443,67 +1441,6 @@
             
             // Obtener solo los mensajes nuevos
             const newMessages = messages.slice(0, newMessagesCount);
-            
-            // Mostrar notificación para cada mensaje nuevo (máximo 3)
-            const messagesToShow = newMessages.slice(0, 3);
-            
-            messagesToShow.forEach((msg, index) => {
-              setTimeout(() => {
-                try {
-                  const notificationBody = msg.text 
-                    ? msg.text.substring(0, 100) + (msg.text.length > 100 ? '...' : '')
-                    : 'Mensaje con dibujo adjunto';
-
-                  const notification = new Notification('📨 Nuevo mensaje en InboxPaint', {
-                    body: notificationBody,
-                    icon: '/favicon.ico',
-                    badge: '/favicon.ico',
-                    tag: 'inbox-message-' + msg.id,
-                    requireInteraction: false,
-                    silent: false
-                  });
-
-                  // Click en notificación: abrir/enfocar ventana
-                  notification.onclick = () => {
-                    window.focus();
-                    notification.close();
-                    if (isOwner()) {
-                      renderInboxItems(); // Refrescar lista si está en vista owner
-                    }
-                  };
-
-                  // Auto-cerrar después de 5 segundos
-                  setTimeout(() => notification.close(), 5000);
-                } catch (err) {
-                  console.warn('Error mostrando notificación:', err);
-                }
-              }, index * 1000); // Espaciar notificaciones por 1 segundo
-            });
-
-            // Si hay más de 3 mensajes nuevos, mostrar un resumen
-            if (newMessagesCount > 3) {
-              setTimeout(() => {
-                try {
-                  const notification = new Notification('📨 Más mensajes nuevos', {
-                    body: `Tienes ${newMessagesCount} mensajes nuevos en total`,
-                    icon: '/favicon.ico',
-                    badge: '/favicon.ico',
-                    tag: 'inbox-summary',
-                    requireInteraction: false
-                  });
-
-                  notification.onclick = () => {
-                    window.focus();
-                    notification.close();
-                    if (isOwner()) renderInboxItems();
-                  };
-
-                  setTimeout(() => notification.close(), 5000);
-                } catch (err) {
-                  console.warn('Error mostrando notificación resumen:', err);
-                }
-              }, 3000);
-            }
           }
 
           lastMessageCount = currentCount;
