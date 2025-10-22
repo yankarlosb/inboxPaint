@@ -1329,6 +1329,9 @@
     // render inbox items (from server or local)
     async function renderInboxItems() {
       const list = qsel('#inbox-list');
+      // Preserve scroll position before rebuilding
+      const scrollTop = list.scrollTop;
+      
       let arr = [];
       if (SERVER_URL) {
         try { const res = await fetch(SERVER_URL + '/api/messages', { headers: { 'x-owner-token': getStoredOwnerToken() } }); if (res.ok) { arr = await res.json(); } else { throw new Error('no'); } }
@@ -1363,6 +1366,9 @@
       }
 
       qselAll('.mark-read').forEach(btn => btn.addEventListener('click', (e) => { const id = e.currentTarget.dataset.id; markRead(id); }));
+      
+      // Restore scroll position after rebuilding
+      list.scrollTop = scrollTop;
     }
 
     function markRead(id) {
