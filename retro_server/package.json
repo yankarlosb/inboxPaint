@@ -15,9 +15,17 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "pg": "^8.16.3"
   },
-  "keywords": ["anonymous", "messaging", "canvas", "drawing", "retro", "horror"],
+  "keywords": [
+    "anonymous",
+    "messaging",
+    "canvas",
+    "drawing",
+    "retro",
+    "horror"
+  ],
   "author": "Yankarlos",
   "license": "MIT"
 }

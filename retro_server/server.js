@@ -34,6 +34,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import * as db from './db.js';
 
 // Cargar variables de entorno desde .env en la raíz del proyecto
 const __filename = fileURLToPath(import.meta.url);
@@ -42,40 +43,10 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const PORT = process.env.PORT || 3000;
 const OWNER_TOKEN = process.env.OWNER_TOKEN || 'owner123';
-const DB_FILE = path.join(__dirname, 'db.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
-const PROFILE_DIR = path.join(__dirname, 'profile');
-const PROFILE_FILE = path.join(PROFILE_DIR, 'owner.json');
 
 // ensure folders
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-if (!fs.existsSync(PROFILE_DIR)) fs.mkdirSync(PROFILE_DIR, { recursive: true });
-
-// read/write JSON db helpers
-function readDB() {
-  try {
-    const raw = fs.readFileSync(DB_FILE, { encoding: 'utf8' });
-    return JSON.parse(raw);
-  } catch (e) {
-    return { messages: [], profile: null };
-  }
-}
-function writeDB(db) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-}
-
-// read/write profile helpers
-function readProfile() {
-  try {
-    const raw = fs.readFileSync(PROFILE_FILE, { encoding: 'utf8' });
-    return JSON.parse(raw);
-  } catch (e) {
-    return null;
-  }
-}
-function writeProfile(profile) {
-  fs.writeFileSync(PROFILE_FILE, JSON.stringify(profile, null, 2));
-}
 
 const app = express();
 app.use(cors());
@@ -90,17 +61,17 @@ const upload = multer({ dest: UPLOADS_DIR });
 function newid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
 // Public: post message (optionally with drawing file)
-app.post('/api/messages', upload.single('drawing'), (req, res) => {
+app.post('/api/messages', upload.single('drawing'), async (req, res) => {
   try {
-    const db = readDB();
     const id = newid();
     const text = (req.body && req.body.text) ? String(req.body.text) : '';
+    const nick = (req.body && req.body.nick) ? String(req.body.nick) : null;
 
     const item = {
       id,
       text,
+      nick,
       ts: Date.now(),
-      read: false,
       drawingUrl: null
     };
 
@@ -114,8 +85,7 @@ app.post('/api/messages', upload.single('drawing'), (req, res) => {
       item.drawingUrl = '/uploads/' + destName;
     }
 
-    db.messages.push(item);
-    writeDB(db);
+    await db.createMessage(item);
 
     // simple response
     res.json({ ok: true, id });
@@ -126,31 +96,38 @@ app.post('/api/messages', upload.single('drawing'), (req, res) => {
 });
 
 // Public: list messages
-app.get('/api/messages', (req, res) => {
-  const db = readDB();
-  res.json(db.messages);
+app.get('/api/messages', async (req, res) => {
+  try {
+    const messages = await db.getAllMessages();
+    res.json(messages);
+  } catch (err) {
+    console.error('GET /api/messages error', err);
+    res.status(500).json({ ok: false, error: 'server error' });
+  }
 });
 
 // Owner-only: mark message read
-app.post('/api/messages/:id/read', (req, res) => {
-  const token = req.headers['x-owner-token'] || req.query.owner_token || '';
-  if (token !== OWNER_TOKEN) return res.status(403).json({ ok: false, error: 'forbidden' });
-
-  const db = readDB();
-  const it = db.messages.find(m => m.id === req.params.id);
-  if (!it) return res.status(404).json({ ok: false, error: 'not found' });
-  it.read = true;
-  writeDB(db);
-  res.json({ ok: true });
-});
-
-// Owner-only: save profile
-app.post('/api/profile', (req, res) => {
+app.post('/api/messages/:id/read', async (req, res) => {
   const token = req.headers['x-owner-token'] || req.query.owner_token || '';
   if (token !== OWNER_TOKEN) return res.status(403).json({ ok: false, error: 'forbidden' });
 
   try {
-    writeProfile(req.body);
+    const message = await db.markMessageAsRead(req.params.id);
+    if (!message) return res.status(404).json({ ok: false, error: 'not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error marking as read:', err);
+    res.status(500).json({ ok: false, error: 'server error' });
+  }
+});
+
+// Owner-only: save profile
+app.post('/api/profile', async (req, res) => {
+  const token = req.headers['x-owner-token'] || req.query.owner_token || '';
+  if (token !== OWNER_TOKEN) return res.status(403).json({ ok: false, error: 'forbidden' });
+
+  try {
+    await db.updateProfile(req.body);
     res.json({ ok: true });
   } catch (err) {
     console.error('Error saving profile:', err);
@@ -159,9 +136,9 @@ app.post('/api/profile', (req, res) => {
 });
 
 // Public: get profile
-app.get('/api/profile', (req, res) => {
+app.get('/api/profile', async (req, res) => {
   try {
-    const profile = readProfile();
+    const profile = await db.getProfile();
     res.json(profile || null);
   } catch (err) {
     console.error('Error reading profile:', err);
@@ -177,33 +154,44 @@ app.get('/api/config', (req, res) => {
 });
 
 // Optional: delete message (owner-only) - not used by default UI, but provided
-app.delete('/api/messages/:id', (req, res) => {
+app.delete('/api/messages/:id', async (req, res) => {
   const token = req.headers['x-owner-token'] || req.query.owner_token || '';
   if (token !== OWNER_TOKEN) return res.status(403).json({ ok: false, error: 'forbidden' });
 
-  const db = readDB();
-  const idx = db.messages.findIndex(m => m.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ ok: false, error: 'not found' });
+  try {
+    const message = await db.deleteMessage(req.params.id);
+    if (!message) return res.status(404).json({ ok: false, error: 'not found' });
 
-  // optionally unlink drawing file
-  const item = db.messages[idx];
-  if (item.drawingUrl) {
-    const p = path.join('.', item.drawingUrl.replace(/^\//, ''));
-    try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch (e) { console.warn('could not unlink', p); }
+    // optionally unlink drawing file
+    if (message.drawingUrl) {
+      const p = path.join('.', message.drawingUrl.replace(/^\//, ''));
+      try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch (e) { console.warn('could not unlink', p); }
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error deleting message:', err);
+    res.status(500).json({ ok: false, error: 'server error' });
   }
-
-  db.messages.splice(idx, 1);
-  writeDB(db);
-  res.json({ ok: true });
 });
 
 // Health
 app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
-app.listen(PORT, () => {
-  console.log(`🚀 Retro Inbox running at http://localhost:${PORT}`);
-  console.log(`🔑 Owner token: ${OWNER_TOKEN}`);
-});
+// Inicializar DB y servidor
+(async () => {
+  try {
+    await db.initDB();
+    app.listen(PORT, () => {
+      console.log(`🚀 Retro Inbox running at http://localhost:${PORT}`);
+      console.log(`🔑 Owner token: ${OWNER_TOKEN}`);
+      console.log(`💾 Database: PostgreSQL`);
+    });
+  } catch (err) {
+    console.error('❌ Error starting server:', err);
+    process.exit(1);
+  }
+})();
 /*
   package.json suggested:
   {
