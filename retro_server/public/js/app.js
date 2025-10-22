@@ -99,7 +99,8 @@
 
     // owner check
     function isOwner() { 
-      const token = getUrlParam('owner'); 
+      const token = getUrlParam('owner');
+      console.log('🔐 Checking owner:', { urlToken: token, serverToken: DEFAULT_OWNER_TOKEN, match: token === DEFAULT_OWNER_TOKEN });
       return token && DEFAULT_OWNER_TOKEN && token === DEFAULT_OWNER_TOKEN; 
     }
 
