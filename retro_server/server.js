@@ -47,13 +47,14 @@ app.post('/api/messages', upload.single('drawing'), async (req, res) => {
     };
 
     if (req.file) {
-      // preserve extension if possible
-      const original = req.file.originalname || '';
-      const ext = path.extname(original) || path.extname(req.file.path) || '.png';
-      const destName = id + ext;
-      const destPath = path.join(UPLOADS_DIR, destName);
-      fs.renameSync(req.file.path, destPath);
-      item.drawingUrl = '/uploads/' + destName;
+      // Convert file to data URL and save in database
+      const fileBuffer = fs.readFileSync(req.file.path);
+      const mimeType = req.file.mimetype || 'image/png';
+      const base64 = fileBuffer.toString('base64');
+      item.drawingUrl = `data:${mimeType};base64,${base64}`;
+      
+      // Delete temporary file
+      fs.unlinkSync(req.file.path);
     }
 
     await db.createMessage(item);
