@@ -14,6 +14,70 @@
     function qselAll(s) { return Array.from(document.querySelectorAll(s)); }
     function getUrlParam(name) { const u = new URL(location.href); return u.searchParams.get(name); }
 
+    // Mobile tabs utility
+    function initMobileTabs(tabsData) {
+      // Check if mobile
+      if (window.innerWidth > 768) return;
+
+      const container = qsel('.max-w-6xl');
+      const desktopGrid = qsel('.desktop-grid');
+      
+      if (!container || !desktopGrid) return;
+
+      // Add class to hide desktop grid on mobile
+      desktopGrid.classList.add('use-mobile-tabs');
+
+      // Create tabs container
+      const tabsContainer = document.createElement('div');
+      tabsContainer.className = 'mobile-tabs';
+      
+      // Create tabs header
+      const tabsHeader = document.createElement('div');
+      tabsHeader.className = 'mobile-tabs-header';
+      
+      tabsData.forEach((tab, index) => {
+        const button = document.createElement('button');
+        button.className = 'mobile-tab-button' + (index === 0 ? ' active' : '');
+        button.textContent = tab.label;
+        button.dataset.tabId = tab.id;
+        button.addEventListener('click', () => switchMobileTab(tab.id));
+        tabsHeader.appendChild(button);
+      });
+      
+      tabsContainer.appendChild(tabsHeader);
+      
+      // Create tabs content
+      tabsData.forEach((tab, index) => {
+        const content = document.createElement('div');
+        content.className = 'mobile-tab-content' + (index === 0 ? ' active' : '');
+        content.id = 'mobile-tab-' + tab.id;
+        content.innerHTML = tab.content;
+        tabsContainer.appendChild(content);
+      });
+      
+      // Insert tabs before desktop grid
+      container.insertBefore(tabsContainer, desktopGrid);
+      
+      // Execute any initialization callbacks
+      tabsData.forEach(tab => {
+        if (tab.onInit) {
+          tab.onInit();
+        }
+      });
+    }
+
+    function switchMobileTab(tabId) {
+      // Update buttons
+      qselAll('.mobile-tab-button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tabId === tabId);
+      });
+      
+      // Update content
+      qselAll('.mobile-tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === 'mobile-tab-' + tabId);
+      });
+    }
+
     // Retro Modal/Alert System
     function showRetroAlert(message, type = 'info') {
       const icons = {
@@ -164,6 +228,16 @@
       <div class="divider-retro mt-4"></div>
     `;
 
+      // Setup mobile tabs for anonymous view
+      if (window.innerWidth <= 768) {
+        setupAnonMobileTabs();
+      } else {
+        // Initialize form normally for desktop
+        initAnonFormListeners();
+      }
+    }
+
+    function initAnonFormListeners() {
       // drawing logic with undo, color picker, and brush size
       const canvas = qsel('#draw-canvas');
       const ctx = canvas.getContext('2d', { 
@@ -1214,6 +1288,98 @@
       });
     }
 
+    function setupAnonMobileTabs() {
+      // Get profile HTML from sidebar
+      const sidebar = qsel('aside.retro-panel');
+      const profileHtml = sidebar ? sidebar.innerHTML : '';
+      
+      // Get message form HTML from main
+      const mainContent = qsel('#view-root');
+      const messageFormHtml = mainContent ? mainContent.innerHTML : '';
+      
+      const tabsData = [
+        {
+          id: 'profile',
+          label: '👤 PERFIL',
+          content: profileHtml
+        },
+        {
+          id: 'message',
+          label: '✉️ MENSAJE',
+          content: messageFormHtml,
+          onInit: () => {
+            // Re-initialize all event listeners for the message form
+            setTimeout(() => initAnonFormListeners(), 100);
+          }
+        }
+      ];
+      
+      initMobileTabs(tabsData);
+    }
+
+    function setupOwnerMobileTabs() {
+      // Get profile HTML from sidebar
+      const sidebar = qsel('aside.retro-panel');
+      const profileHtml = sidebar ? sidebar.innerHTML : '';
+      
+      // Get edit profile HTML
+      const editProfilePanel = qsel('.mt-4.retro-panel');
+      const editProfileHtml = editProfilePanel ? editProfilePanel.innerHTML : '';
+      
+      // Get inbox HTML
+      const inboxList = qsel('#inbox-list');
+      const refreshBtn = qsel('#refresh-inbox');
+      const downloadBtn = qsel('#download-all');
+      
+      const inboxHtml = `
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button id="refresh-inbox-mobile" class="btn-retro">⟳ REFRESH</button>
+          <button id="download-all-mobile" class="btn-retro">💾 SAVE_ALL</button>
+        </div>
+        <div id="inbox-list-mobile" class="space-y-3 max-h-[70vh] overflow-auto" style="padding: 8px;"></div>
+      `;
+      
+      const tabsData = [
+        {
+          id: 'profile',
+          label: '👤 PERFIL',
+          content: profileHtml
+        },
+        {
+          id: 'edit',
+          label: '✏️ EDITAR',
+          content: `<h3 class="font-semibold" style="font-size:14px; margin-bottom:12px; color: var(--horror-red); letter-spacing: 2px; text-shadow: 0 0 10px var(--horror-glow);">PUBLIC_PROFILE_DATA</h3>${editProfileHtml}`,
+          onInit: () => {
+            setTimeout(() => initOwnerProfileListeners(), 100);
+          }
+        },
+        {
+          id: 'inbox',
+          label: '📬 INBOX',
+          content: inboxHtml,
+          onInit: () => {
+            setTimeout(() => {
+              // Re-attach inbox event listeners
+              const refreshMobile = qsel('#refresh-inbox-mobile');
+              const downloadMobile = qsel('#download-all-mobile');
+              
+              if (refreshMobile) {
+                refreshMobile.addEventListener('click', renderInboxItemsMobile);
+              }
+              if (downloadMobile) {
+                downloadMobile.addEventListener('click', downloadAllDrawings);
+              }
+              
+              // Render inbox items in mobile tab
+              renderInboxItemsMobile();
+            }, 100);
+          }
+        }
+      ];
+      
+      initMobileTabs(tabsData);
+    }
+
     /* ------------------ Owner view ------------------ */
     function renderOwnerView(root) {
       root.innerHTML = `
@@ -1257,8 +1423,23 @@
       qsel('#refresh-inbox').addEventListener('click', renderInboxItems);
       qsel('#download-all').addEventListener('click', downloadAllDrawings);
 
+      initOwnerProfileListeners();
+
+      // Start polling for new messages
+      startPolling(renderInboxItems);
+      renderInboxItems();
+      
+      // Setup mobile tabs for owner view
+      if (window.innerWidth <= 768) {
+        setupOwnerMobileTabs();
+      }
+    }
+
+    function initOwnerProfileListeners() {
       // profile wiring - load from server
       const ownerAvatarEl = qsel('#owner-avatar');
+      
+      if (!ownerAvatarEl) return; // Safety check
 
       // Load profile from server
       if (SERVER_URL) {
@@ -1342,15 +1523,81 @@
         
         qsel('#profile-avatar').src = profile.avatar;
       });
-
-      // Start polling for new messages
-      startPolling(renderInboxItems);
-      renderInboxItems();
     }
 
     // Render inbox items (from server or local storage)
     async function renderInboxItems() {
       const list = qsel('#inbox-list');
+      const scrollTop = list.scrollTop; // Preserve scroll position
+      
+      let messages = [];
+      if (SERVER_URL) {
+        try { 
+          const response = await fetch(SERVER_URL + '/api/messages', { 
+            headers: { 'x-owner-token': getStoredOwnerToken() } 
+          }); 
+          if (response.ok) { 
+            messages = await response.json(); 
+          } else { 
+            throw new Error('Failed to fetch messages'); 
+          } 
+        } catch (error) { 
+          console.warn('Error fetching from server, fallback to local', error); 
+          messages = loadInboxLocal(); 
+        }
+      } else {
+        messages = loadInboxLocal();
+      }
+      
+      // Sort by timestamp descending (newest first)
+      messages = messages.sort((a, b) => b.ts - a.ts);
+      
+      if (messages.length === 0) {
+        list.innerHTML = '<div class="p-4 message-box" style="font-size:13px; text-align:center; color: var(--horror-text);">⚠ NO TRANSMISSIONS DETECTED ⚠</div>';
+        return;
+      }
+      
+      list.innerHTML = '';
+      
+      for (const message of messages) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'p-4 message-box flex gap-3 items-start';
+        messageElement.style.cssText = 'background: var(--horror-gray); border: 1px solid var(--horror-blood); position: relative;';
+        
+        const drawingUrl = message.drawingUrl || message.drawing;
+        const fullDrawingUrl = drawingUrl && SERVER_URL && !drawingUrl.startsWith('data:') 
+          ? SERVER_URL + drawingUrl 
+          : drawingUrl;
+        
+        messageElement.innerHTML = `
+        <div class="w-2/3" style="font-size:12px; padding-left: 8px;">
+          <div class="font-semibold" style="margin-bottom:6px; color: var(--horror-red); letter-spacing: 1px; text-shadow: 0 0 10px var(--horror-glow);">⚠ TRANSMISSION_${message.id.toUpperCase().slice(0, 6)} · ${new Date(message.ts).toLocaleString()}</div>
+          <div class="mt-1 break-words" style="color: var(--horror-text); line-height: 1.6; padding-left: 4px;">${message.text ? escapeHtml(message.text) : '<i style="opacity:0.6; color: var(--horror-blood);">[NO_TEXT_DATA]</i>'}</div>
+        </div>
+        <div class="w-1/3 flex flex-col items-end gap-2">
+          ${fullDrawingUrl ? `<div class="flex justify-end"><img src="${fullDrawingUrl}" style="max-width:140px; border: 2px solid var(--horror-red); border-radius: 0; box-shadow: 0 0 15px var(--horror-shadow); filter: grayscale(0.3) contrast(1.2);" /></div>` : ''}
+          <button class="btn-retro mark-read" data-id="${message.id}">${message.read ? '✓ READ' : '○ MARK_READ'}</button>
+          ${fullDrawingUrl ? `<a class="btn-retro" href="${fullDrawingUrl}" download="transmission_${message.id}.png" style="text-decoration:none;">⬇ SAVE</a>` : ''}
+        </div>
+      `;
+        list.appendChild(messageElement);
+      }
+
+      qselAll('.mark-read').forEach(button => {
+        button.addEventListener('click', (event) => { 
+          const messageId = event.currentTarget.dataset.id; 
+          markRead(messageId); 
+        });
+      });
+      
+      // Restore scroll position after rebuilding
+      list.scrollTop = scrollTop;
+    }
+
+    async function renderInboxItemsMobile() {
+      const list = qsel('#inbox-list-mobile');
+      if (!list) return; // Safety check for desktop
+      
       const scrollTop = list.scrollTop; // Preserve scroll position
       
       let messages = [];
@@ -1423,7 +1670,13 @@
           method: 'POST',
           headers: { 'x-owner-token': getStoredOwnerToken() }
         })
-          .then(() => renderInboxItems())
+          .then(() => {
+            renderInboxItems();
+            // Also update mobile inbox if it exists
+            if (qsel('#inbox-list-mobile')) {
+              renderInboxItemsMobile();
+            }
+          })
           .catch(() => {
             // Fallback to local storage
             const messages = loadInboxLocal();
@@ -1432,6 +1685,9 @@
               messages[index].read = true;
               saveInboxLocal(messages);
               renderInboxItems();
+              if (qsel('#inbox-list-mobile')) {
+                renderInboxItemsMobile();
+              }
             }
           });
       } else {
@@ -1441,6 +1697,9 @@
           messages[index].read = true;
           saveInboxLocal(messages);
           renderInboxItems();
+          if (qsel('#inbox-list-mobile')) {
+            renderInboxItemsMobile();
+          }
         }
       }
     }
