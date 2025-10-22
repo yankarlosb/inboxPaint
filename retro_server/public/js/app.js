@@ -1436,27 +1436,60 @@
         return;
       }
 
-      // Solicitar permiso
+      // Verificar si ya están permitidas
+      if (Notification.permission === 'granted') {
+        notificationsEnabled = true;
+        localStorage.setItem('notifications_enabled', 'true');
+        showRetroAlert('✓ NOTIFICATIONS_ALREADY_ENABLED ✓', 'success');
+        updateNotificationStatus();
+        return;
+      }
+
+      // Solicitar permiso - compatible con navegadores antiguos y nuevos
       try {
-        const permission = await Notification.requestPermission();
+        // Intentar con promesa (navegadores modernos)
+        let permission;
+        if (Notification.requestPermission.length === 0) {
+          // Navegadores modernos que devuelven promesa
+          permission = await Notification.requestPermission();
+        } else {
+          // Navegadores antiguos que usan callback
+          permission = await new Promise((resolve) => {
+            Notification.requestPermission(resolve);
+          });
+        }
+
         if (permission === 'granted') {
           notificationsEnabled = true;
           localStorage.setItem('notifications_enabled', 'true');
+          await initMessageCount(); // Inicializar contador
           showRetroAlert('✓ NOTIFICATIONS_ENABLED ✓', 'success');
           updateNotificationStatus();
           
           // Mostrar notificación de prueba
-          new Notification('InboxPaint - Notificaciones Activas', {
-            body: 'Recibirás notificaciones cuando lleguen nuevos mensajes',
-            icon: '/favicon.ico',
-            badge: '/favicon.ico'
-          });
+          setTimeout(() => {
+            try {
+              const notification = new Notification('InboxPaint - Notificaciones Activas', {
+                body: 'Recibirás notificaciones cuando lleguen nuevos mensajes',
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: 'test-notification'
+              });
+              
+              // Auto-cerrar después de 4 segundos
+              setTimeout(() => notification.close(), 4000);
+            } catch (err) {
+              console.warn('No se pudo mostrar notificación de prueba:', err);
+            }
+          }, 500);
+        } else if (permission === 'denied') {
+          showRetroAlert('⚠ NOTIFICATION_PERMISSION_DENIED // REVISA_CONFIGURACIÓN_DEL_NAVEGADOR ⚠', 'warning');
         } else {
-          showRetroAlert('⚠ NOTIFICATION_PERMISSION_DENIED ⚠', 'warning');
+          showRetroAlert('⚠ NOTIFICATION_PERMISSION_DISMISSED ⚠', 'info');
         }
       } catch (err) {
         console.error('Error requesting notification permission:', err);
-        showRetroAlert('✗ NOTIFICATION_ERROR ✗', 'error');
+        showRetroAlert('✗ NOTIFICATION_ERROR: ' + err.message + ' ✗', 'error');
       }
     }
 
@@ -1469,10 +1502,10 @@
       const enabled = localStorage.getItem('notifications_enabled') === 'true';
 
       if (!hasPermission) {
-        statusEl.textContent = '🔔 Notificaciones: Click para activar';
+        statusEl.innerHTML = '🔔 Notificaciones: Click para activar<br><span style="font-size:8px; opacity:0.6;">(Requiere mantener la página abierta)</span>';
         statusEl.style.color = 'var(--jp-soft-purple)';
       } else if (enabled) {
-        statusEl.textContent = '✅ Notificaciones activas';
+        statusEl.innerHTML = '✅ Notificaciones activas<br><span style="font-size:8px; opacity:0.6;">(Verificando cada 10 segundos)</span>';
         statusEl.style.color = '#00ff00';
         notificationsEnabled = true;
       }
@@ -1483,6 +1516,7 @@
       // Solo verificar si las notificaciones están habilitadas
       if (!notificationsEnabled) return;
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      if (!SERVER_URL) return;
 
       try {
         const res = await fetch(SERVER_URL + '/api/messages', {
@@ -1492,29 +1526,74 @@
         if (res.ok) {
           const messages = await res.json();
           const currentCount = messages.length;
-          const unreadCount = messages.filter(m => !m.read).length;
 
-          // Si hay nuevos mensajes
+          // Si hay nuevos mensajes (y ya teníamos un conteo previo)
           if (lastMessageCount > 0 && currentCount > lastMessageCount) {
             const newMessagesCount = currentCount - lastMessageCount;
-            const latestMessage = messages[0]; // El más reciente
+            
+            // Obtener solo los mensajes nuevos
+            const newMessages = messages.slice(0, newMessagesCount);
+            
+            // Mostrar notificación para cada mensaje nuevo (máximo 3)
+            const messagesToShow = newMessages.slice(0, 3);
+            
+            messagesToShow.forEach((msg, index) => {
+              setTimeout(() => {
+                try {
+                  const notificationBody = msg.text 
+                    ? msg.text.substring(0, 100) + (msg.text.length > 100 ? '...' : '')
+                    : 'Mensaje con dibujo adjunto';
 
-            // Mostrar notificación
-            const notification = new Notification('📨 Nuevo mensaje en InboxPaint', {
-              body: latestMessage.text ? latestMessage.text.substring(0, 100) : 'Mensaje con dibujo adjunto',
-              icon: '/favicon.ico',
-              badge: '/favicon.ico',
-              tag: 'inbox-message',
-              requireInteraction: false,
-              silent: false
+                  const notification = new Notification('📨 Nuevo mensaje en InboxPaint', {
+                    body: notificationBody,
+                    icon: '/favicon.ico',
+                    badge: '/favicon.ico',
+                    tag: 'inbox-message-' + msg.id,
+                    requireInteraction: false,
+                    silent: false
+                  });
+
+                  // Click en notificación: abrir/enfocar ventana
+                  notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                    if (isOwner()) {
+                      renderInboxItems(); // Refrescar lista si está en vista owner
+                    }
+                  };
+
+                  // Auto-cerrar después de 5 segundos
+                  setTimeout(() => notification.close(), 5000);
+                } catch (err) {
+                  console.warn('Error mostrando notificación:', err);
+                }
+              }, index * 1000); // Espaciar notificaciones por 1 segundo
             });
 
-            // Click en notificación: abrir/enfocar ventana
-            notification.onclick = () => {
-              window.focus();
-              notification.close();
-              renderInboxItems(); // Refrescar lista
-            };
+            // Si hay más de 3 mensajes nuevos, mostrar un resumen
+            if (newMessagesCount > 3) {
+              setTimeout(() => {
+                try {
+                  const notification = new Notification('📨 Más mensajes nuevos', {
+                    body: `Tienes ${newMessagesCount} mensajes nuevos en total`,
+                    icon: '/favicon.ico',
+                    badge: '/favicon.ico',
+                    tag: 'inbox-summary',
+                    requireInteraction: false
+                  });
+
+                  notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                    if (isOwner()) renderInboxItems();
+                  };
+
+                  setTimeout(() => notification.close(), 5000);
+                } catch (err) {
+                  console.warn('Error mostrando notificación resumen:', err);
+                }
+              }, 3000);
+            }
           }
 
           lastMessageCount = currentCount;
