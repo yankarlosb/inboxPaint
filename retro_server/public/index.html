@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>InboxPaint · Mensajes Anónimos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body class="p-6">
+  <!-- Scan line effect -->
+  <div
+    style="position: fixed; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--horror-red), transparent); animation: scan 4s linear infinite; z-index: 1001; pointer-events: none; opacity: 0.3; will-change: transform;">
+  </div>
+  <style>
+    @keyframes scan {
+      0% {
+        transform: translateY(0);
+      }
+
+      100% {
+        transform: translateY(100vh);
+      }
+    }
+  </style>
+  <!-- Floating creepy elements (optimized) -->
+  <div
+    style="position: fixed; top: 10%; left: 5%; font-size: 40px; color: var(--horror-red); opacity: 0.1; animation: creep 30s linear infinite; z-index: 0; pointer-events: none; will-change: transform;">
+    👁</div>
+  <div
+    style="position: fixed; top: 30%; left: 80%; font-size: 35px; color: var(--horror-red); opacity: 0.12; animation: creep 28s linear infinite 10s; z-index: 0; pointer-events: none; will-change: transform;">
+    🕷</div>
+  <div
+    style="position: fixed; top: 20%; right: 30%; font-size: 20px; color: var(--horror-red); opacity: 0.15; animation: drip 10s linear infinite; z-index: 0; pointer-events: none; will-change: transform;">
+    🩸</div>
+  <div
+    style="position: fixed; top: 50%; left: 40%; font-size: 20px; color: var(--horror-red); opacity: 0.15; animation: drip 12s linear infinite 6s; z-index: 0; pointer-events: none; will-change: transform;">
+    🩸</div>
+
+  <div id="retro-modal-container"></div>
+  <div class="max-w-6xl mx-auto">
+    <div class="window-title mb-4">
+      <div class="title-dot"></div>
+      <div style="animation: glitch 8s infinite;">INBOXPAINT.EXE</div>
+      <div class="ml-auto" style="font-size:9px; opacity:0.7; animation: flicker 5s infinite;">[ RECEIVING... HELP...
+        US... ]</div>
+    </div>
+
+    <div class="grid desktop-grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Perfil izquierdo -->
+      <aside class="col-span-1 md:col-span-1 retro-panel p-4">
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-3">
+          <img id="profile-avatar"
+            src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><rect width='100%' height='100%' fill='%230a0a0a'/><rect x='10' y='10' width='76' height='76' fill='none' stroke='%23ff0000' stroke-width='2'/><text x='50%' y='55%' font-size='40' dominant-baseline='middle' text-anchor='middle' fill='%23ff0000' font-family='Courier New'>?</text></svg>"
+            alt="avatar" class="avatar" />
+          <div class="text-center sm:text-left">
+            <h3 class="font-bold"
+              style="font-size:11px; color: #f0f0f0; letter-spacing: 2px; animation: flicker 6s infinite; text-shadow: 0 0 10px rgba(255, 0, 0, 0.3);"
+              id="profile-name">UNKNOWN_USER</h3>
+            <p style="font-size:10px; color: #e0e0e0; opacity: 0.8; line-height: 1.4;" id="profile-bio">signal.lost...
+              they're.here... don't.look.behind.you... run...</p>
+          </div>
+        </div>
+        <div class="divider-retro"></div>
+        <ul style="font-size:10px;" class="space-y-2">
+          <li><strong
+              style="color: #ff3333; animation: flicker 4s infinite; text-shadow: 0 0 10px var(--horror-glow);">LAST_SEEN:</strong>
+            <a href="#" id="profile-web" style="animation: flicker 5s infinite;">NEVER</a></li>
+        </ul>
+      </aside>
+
+      <!-- Centro: anon form / owner inbox -->
+      <main class="col-span-1 md:col-span-2">
+        <div id="view-root" class="retro-panel p-4">
+          <!-- dynamic content inserted here -->
+        </div>
+      </main>
+    </div>
+
+    <footer class="mt-4 text-center"
+      style="font-size:9px; color: #ff3333; opacity:0.8; letter-spacing: 2px; font-family: 'Courier New', monospace; animation: flicker 8s infinite; text-shadow: 0 0 10px var(--horror-glow);">
+      [ INBOXPAINT.EXE v1.0.0 ] // SIGNAL CORRUPTED // THEY ARE WATCHING // DO NOT CLOSE
+    </footer>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

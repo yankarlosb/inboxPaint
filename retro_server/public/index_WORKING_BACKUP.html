@@ -1,0 +1,2812 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>InboxPaint · Mensajes Anónimos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Early 2000s Flash Horror Game Aesthetic - Halloween Edition */
+    :root {
+      --horror-black: #0a0a0a;
+      --horror-red: #ff0000;
+      --horror-blood: #cc0000;
+      --horror-gray: #1a1a1a;
+      --horror-text: #e8e8e8;
+      --horror-white: #ffffff;
+      --horror-pale: #f0f0f0;
+      --horror-shadow: rgba(255, 0, 0, 0.5);
+      --horror-glow: rgba(255, 0, 0, 0.4);
+      --horror-green: #1a3a1a;
+      --horror-decay: #4a4a3a;
+    }
+
+    @keyframes glitch {
+
+      0%,
+      100% {
+        transform: translate(0);
+      }
+
+      25% {
+        transform: translate(-2px, 2px);
+      }
+
+      50% {
+        transform: translate(2px, -2px);
+      }
+
+      75% {
+        transform: translate(-1px, 1px);
+      }
+    }
+
+    @keyframes flicker {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      25% {
+        opacity: 0.5;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
+
+      75% {
+        opacity: 0.8;
+      }
+    }
+
+    @keyframes staticNoise {
+
+      0%,
+      100% {
+        opacity: 0.05;
+      }
+
+      50% {
+        opacity: 0.08;
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 5px var(--horror-glow);
+      }
+
+      50% {
+        box-shadow: 0 0 20px var(--horror-glow), 0 0 30px var(--horror-shadow), inset 0 0 20px rgba(139, 0, 0, 0.2);
+      }
+    }
+
+    @keyframes breathe {
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.01);
+      }
+    }
+
+    @keyframes creep {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.1;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
+
+      100% {
+        transform: translateY(-100vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes drip {
+      0% {
+        transform: translateY(-20px);
+        opacity: 0;
+      }
+
+      10% {
+        opacity: 0.8;
+      }
+
+      100% {
+        transform: translateY(100vh);
+        opacity: 0;
+      }
+    }
+
+    @keyframes avatarGlitch {
+
+      0%,
+      90%,
+      100% {
+        transform: translate(0) scale(1);
+        filter: grayscale(0.5) contrast(1.3) brightness(0.9);
+      }
+
+      91% {
+        transform: translate(-3px, 2px) scale(1.02);
+        filter: grayscale(0.8) contrast(1.8) brightness(0.7) hue-rotate(20deg);
+      }
+
+      92% {
+        transform: translate(2px, -2px) scale(0.98);
+        filter: grayscale(1) contrast(2) brightness(0.5);
+      }
+
+      93% {
+        transform: translate(-2px, -1px) scale(1.01);
+        filter: grayscale(0.3) contrast(1.5) brightness(1.1);
+      }
+
+      94%,
+      96% {
+        transform: translate(0) scale(1);
+        filter: grayscale(0.5) contrast(1.3) brightness(0.9);
+      }
+
+      95% {
+        transform: translate(1px, 1px) scale(1.02);
+        filter: grayscale(0.9) contrast(1.7) brightness(0.6);
+      }
+    }
+
+    body {
+      font-family: 'Courier New', 'Consolas', monospace;
+      background: var(--horror-black);
+      color: var(--horror-text);
+      position: relative;
+      overflow-x: hidden;
+      animation: breathe 8s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    /* Grain/static overlay - optimizado */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 0, 0, 0.02) 2px, rgba(255, 0, 0, 0.02) 4px);
+      pointer-events: none;
+      z-index: 1000;
+      animation: staticNoise 1s infinite;
+      opacity: 0.4;
+      mix-blend-mode: overlay;
+    }
+
+    /* Vignette effect - optimizado */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.5) 70%, rgba(0, 0, 0, 0.85) 100%);
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    body>* {
+      position: relative;
+      z-index: 1;
+    }
+
+    .retro-panel {
+      background: var(--horror-gray);
+      border: 2px solid var(--horror-red);
+      border-radius: 0;
+      box-shadow:
+        0 0 20px var(--horror-shadow),
+        inset 0 0 30px rgba(0, 0, 0, 0.9),
+        inset 0 0 5px var(--horror-blood);
+      animation: pulse 4s ease-in-out infinite;
+      position: relative;
+      will-change: box-shadow;
+    }
+
+    .retro-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 2px,
+          rgba(139, 0, 0, 0.03) 2px,
+          rgba(139, 0, 0, 0.03) 4px);
+      pointer-events: none;
+      animation: flicker 5s infinite;
+    }
+
+    .retro-panel::after {
+      content: '█';
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      font-size: 8px;
+      color: var(--horror-red);
+      opacity: 0.3;
+      animation: flicker 1s infinite;
+    }
+
+    .btn-retro {
+      background: var(--horror-blood);
+      border: 1px solid var(--horror-red);
+      border-radius: 0;
+      padding: .5rem 1rem;
+      font-weight: 400;
+      font-size: 11px;
+      color: var(--horror-pale);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      font-family: 'Courier New', monospace;
+    }
+
+    .btn-retro::before {
+      content: '>';
+      position: absolute;
+      left: 8px;
+      opacity: 0;
+      transition: all 0.2s ease;
+    }
+
+    .btn-retro:hover {
+      background: var(--horror-red);
+      color: var(--horror-white);
+      box-shadow: 0 0 20px var(--horror-glow), 0 0 30px var(--horror-shadow);
+      animation: glitch 0.3s;
+      text-shadow: 0 0 10px var(--horror-glow);
+    }
+
+    .btn-retro:hover::before {
+      opacity: 1;
+    }
+
+    .btn-retro:active {
+      transform: scale(0.98);
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.9);
+    }
+
+    label.btn-retro {
+      display: inline-block;
+      user-select: none;
+    }
+
+    .window-title {
+      background: var(--horror-blood);
+      color: var(--horror-pale);
+      padding: .8rem 1rem;
+      font-weight: 400;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      border-radius: 0;
+      border-bottom: 2px solid var(--horror-black);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(0, 0, 0, 0.7);
+      position: relative;
+      animation: flicker 3s infinite;
+    }
+
+    .window-title::before {
+      content: '█';
+      position: absolute;
+      right: 20px;
+      animation: flicker 1s ease-in-out infinite;
+      color: var(--horror-red);
+      filter: blur(1px);
+    }
+
+    .title-dot {
+      width: 10px;
+      height: 10px;
+      background: var(--horror-red);
+      border: 1px solid var(--horror-pale);
+      border-radius: 0;
+      box-shadow: 0 0 10px var(--horror-glow), inset 0 0 5px rgba(0, 0, 0, 0.8);
+      animation: flicker 2s ease-in-out infinite;
+    }
+
+    .divider-retro {
+      height: 1px;
+      background: var(--horror-red);
+      margin: 1rem 0;
+      box-shadow: 0 0 10px var(--horror-glow), 0 1px 0 var(--horror-blood);
+      position: relative;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .divider-retro::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 1px;
+      background: var(--horror-red);
+      top: 2px;
+      left: 0;
+      opacity: 0.3;
+      filter: blur(1px);
+    }
+
+    .divider-retro::after {
+      content: '⚠';
+      position: absolute;
+      left: 50%;
+      top: -8px;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: var(--horror-red);
+      animation: flicker 2s infinite;
+      text-shadow: 0 0 10px var(--horror-glow);
+    }
+
+    .avatar {
+      width: 96px;
+      height: 96px;
+      border: 2px solid var(--horror-red);
+      border-radius: 0;
+      object-fit: cover;
+      box-shadow:
+        0 0 20px var(--horror-shadow),
+        inset 0 0 30px rgba(0, 0, 0, 0.7);
+      transition: transform 0.3s ease;
+      filter: grayscale(0.5) contrast(1.3) brightness(0.9);
+      position: relative;
+      animation: avatarGlitch 8s ease-in-out infinite;
+    }
+
+    .avatar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 4px,
+          rgba(139, 0, 0, 0.1) 4px,
+          rgba(139, 0, 0, 0.1) 8px);
+      pointer-events: none;
+      animation: flicker 4s infinite;
+    }
+
+    .avatar:hover {
+      transform: scale(1.05) !important;
+      filter: grayscale(0.9) contrast(2) brightness(0.6) !important;
+      animation: glitch 0.3s infinite !important;
+      box-shadow:
+        0 0 40px var(--horror-glow),
+        inset 0 0 50px rgba(255, 0, 0, 0.4) !important;
+    }
+
+    /* Input fields - Horror style */
+    input[type="text"],
+    input[type="color"],
+    textarea,
+    #draw-canvas {
+      background: #0f0f0f;
+      border: 1px solid #ff0000;
+      border-radius: 0;
+      box-shadow:
+        inset 0 0 20px rgba(0, 0, 0, 0.9),
+        0 0 10px var(--horror-shadow);
+      font-family: 'Courier New', 'Consolas', monospace;
+      font-size: 11px;
+      padding: 8px 12px;
+      color: #f0f0f0;
+      transition: all 0.3s ease;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #ff3333;
+      background: #151515;
+      box-shadow:
+        inset 0 0 20px rgba(255, 0, 0, 0.2),
+        0 0 15px var(--horror-glow);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* Extra padding for message textarea */
+    #anon-text,
+    #owner-bio {
+      padding: 12px 13px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: #cc0000;
+      border-radius: 0;
+      border: 1px solid #ff0000;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #ff0000;
+      border: 1px solid #ff6666;
+      border-radius: 0;
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--horror-glow);
+      transition: transform 0.2s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 20px var(--horror-glow);
+    }
+
+    input[type="color"] {
+      width: 40px;
+      height: 40px;
+      border-radius: 0;
+      cursor: pointer;
+      border: 2px solid #ff0000;
+      box-shadow: 0 0 10px var(--horror-shadow);
+    }
+
+    /* Message boxes style */
+    .message-box {
+      background: var(--horror-gray);
+      border: 1px solid var(--horror-red);
+      border-radius: 0;
+      box-shadow:
+        0 0 15px var(--horror-shadow),
+        inset 0 0 20px rgba(0, 0, 0, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .message-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 2px,
+          rgba(255, 0, 0, 0.02) 2px,
+          rgba(255, 0, 0, 0.02) 4px);
+      pointer-events: none;
+      animation: flicker 6s infinite;
+    }
+
+    /* Horror scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--horror-black);
+      border: 1px solid #cc0000;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cc0000;
+      border: 1px solid #ff0000;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 0 5px var(--horror-glow);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ff0000;
+      box-shadow: 0 0 10px var(--horror-glow);
+    }
+
+    ::-webkit-scrollbar-corner {
+      background: var(--horror-black);
+    }
+
+    /* Link colors - Horror style */
+    a {
+      color: #ff3333;
+      text-decoration: none;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+      position: relative;
+      font-family: 'Courier New', monospace;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    }
+
+    a::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: #ff0000;
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+      box-shadow: 0 0 10px var(--horror-glow);
+    }
+
+    a:hover {
+      color: #ff6666;
+      text-shadow: 0 0 15px var(--horror-glow);
+      animation: glitch 0.3s;
+    }
+
+    a:hover::after {
+      transform: scaleX(1);
+    }
+
+    a:visited {
+      color: #cc3333;
+      text-shadow: 0 0 8px rgba(204, 0, 0, 0.5);
+    }
+
+    /* General text sizing */
+    body,
+    input,
+    textarea,
+    button,
+    select {
+      font-size: 11px;
+    }
+
+    /* Horror decorative elements */
+    h2::before,
+    h3::before {
+      content: '▶ ';
+      color: #ff0000;
+      animation: flicker 2s ease-in-out infinite;
+      text-shadow: 0 0 10px var(--horror-glow);
+    }
+
+    h4::before {
+      content: '█ ';
+      color: #ff0000;
+      font-size: 8px;
+      text-shadow: 0 0 10px var(--horror-glow);
+    }
+
+    /* Mobile Responsive Styles */
+    @media (max-width:768px) {
+      body {
+        padding: 0.75rem;
+      }
+
+      .desktop-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .window-title {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.9rem;
+        flex-wrap: wrap;
+      }
+
+      .window-title .ml-auto {
+        margin-left: 0;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.75rem;
+      }
+
+      .retro-panel {
+        padding: 0.75rem !important;
+        border-width: 3px;
+      }
+
+      .avatar {
+        width: 64px;
+        height: 64px;
+        border-width: 2px;
+      }
+
+      .btn-retro {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.85rem;
+      }
+
+      .retro-modal {
+        min-width: 90%;
+        max-width: 90%;
+      }
+
+      .retro-modal-body {
+        padding: 1rem;
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .retro-modal-icon {
+        font-size: 2rem;
+      }
+
+      /* Canvas adjustments */
+      #draw-canvas {
+        max-width: 100%;
+        height: auto;
+        touch-action: none;
+        /* Better touch handling */
+      }
+
+      /* Form adjustments */
+      textarea,
+      input[type="text"] {
+        font-size: 16px !important;
+        /* Prevent zoom on iOS */
+      }
+
+      /* Drawing controls on mobile */
+      #brush-size {
+        width: 80px;
+      }
+
+      /* Stack inbox messages vertically on mobile */
+      .flex.gap-3.items-start {
+        flex-direction: column !important;
+        gap: 1rem !important;
+      }
+
+      .flex.gap-3.items-start>div {
+        width: 100% !important;
+      }
+
+      .flex.flex-col.items-end {
+        align-items: flex-start !important;
+      }
+
+      .flex.justify-end {
+        justify-content: flex-start !important;
+      }
+
+      /* Show sidebar first on mobile (profile at top) */
+      aside.col-span-1 {
+        order: 1;
+      }
+
+      main.col-span-1 {
+        order: 2;
+      }
+
+      /* Owner profile form adjustments for mobile */
+      #owner-avatar {
+        width: 80px !important;
+        height: 80px !important;
+      }
+
+      .flex.gap-3.items-center.mt-2 {
+        flex-direction: column !important;
+      }
+
+      .flex.gap-3.items-center.mt-2 img {
+        margin: 0 auto;
+      }
+
+      .flex.gap-3.items-center.mt-2 .flex-1 {
+        width: 100%;
+      }
+
+      /* Ensure inputs don't overflow */
+      input[type="text"],
+      textarea {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      /* Owner panel header adjustments */
+      .flex.justify-between.items-start {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      /* Message boxes in mobile */
+      .message-box {
+        font-size: 11px !important;
+        padding: 0.8rem !important;
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      /* Canvas container mobile */
+      #draw-canvas {
+        max-width: 100%;
+        height: 150px !important;
+      }
+
+      /* Buttons responsive */
+      .btn-retro {
+        font-size: 11px;
+        padding: 0.5rem 0.8rem;
+      }
+      
+      /* Hide fullscreen button on mobile */
+      #fullscreen-canvas {
+        display: none !important;
+      }
+    }
+
+    @media (max-width:480px) {
+      body {
+        padding: 0.5rem;
+      }
+
+      .window-title {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.4rem;
+      }
+
+      .title-dot {
+        width: 8px;
+        height: 8px;
+      }
+
+      .avatar {
+        width: 48px;
+        height: 48px;
+      }
+
+      #owner-avatar {
+        width: 64px !important;
+        height: 64px !important;
+      }
+
+      .btn-retro {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.4rem;
+      }
+
+      h2,
+      h3 {
+        font-size: 1.1rem !important;
+      }
+
+      h4 {
+        font-size: 0.95rem !important;
+      }
+
+      .text-sm {
+        font-size: 0.8rem;
+      }
+
+      .text-xs {
+        font-size: 0.7rem;
+      }
+
+      /* Stack buttons vertically on very small screens */
+      .flex.flex-wrap.gap-2 {
+        flex-direction: column;
+      }
+
+      .flex.flex-wrap.gap-2 button {
+        width: 100%;
+      }
+    }
+
+    /* Horror Modal/Alert */
+    .retro-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.97);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .retro-modal-overlay::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(139, 0, 0, 0.05) 2px, rgba(139, 0, 0, 0.05) 4px);
+      animation: flicker 2s infinite;
+    }
+
+    .retro-modal {
+      background: var(--horror-gray);
+      border: 2px solid var(--horror-red);
+      border-radius: 0;
+      box-shadow:
+        0 0 60px var(--horror-shadow),
+        inset 0 0 60px rgba(0, 0, 0, 0.9),
+        0 0 100px rgba(139, 0, 0, 0.3);
+      min-width: 320px;
+      max-width: 480px;
+      animation: glitch 0.5s, pulse 3s ease-in-out infinite;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .retro-modal::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 3px,
+          rgba(139, 0, 0, 0.05) 3px,
+          rgba(139, 0, 0, 0.05) 6px);
+      pointer-events: none;
+      animation: staticNoise 0.3s infinite;
+    }
+
+    .retro-modal-title {
+      background: var(--horror-blood);
+      color: var(--horror-pale);
+      padding: 0.8rem 1rem;
+      font-weight: 400;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+      border-bottom: 1px solid var(--horror-black);
+      font-family: 'Courier New', monospace;
+      box-shadow: inset 0 -10px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .retro-modal-title::after {
+      content: '⚠';
+      position: absolute;
+      right: 15px;
+      animation: flicker 1s ease-in-out infinite;
+      color: var(--horror-red);
+      filter: blur(0.5px);
+      text-shadow: 0 0 10px var(--horror-glow);
+    }
+
+    .retro-modal-body {
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: transparent;
+      position: relative;
+    }
+
+    .retro-modal-icon {
+      font-size: 3rem;
+      flex-shrink: 0;
+      animation: flicker 2s ease-in-out infinite;
+      filter: drop-shadow(0 0 15px var(--horror-glow));
+    }
+
+    .retro-modal-text {
+      flex: 1;
+      font-size: 11px;
+      color: var(--horror-text);
+      line-height: 1.6;
+      font-family: 'Courier New', monospace;
+      text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .retro-modal-footer {
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      background: rgba(139, 0, 0, 0.15);
+      border-top: 1px solid var(--horror-red);
+      box-shadow: inset 0 10px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Mobile styles for modals */
+    @media (max-width: 768px) {
+      .retro-modal {
+        min-width: 280px;
+        max-width: 90vw;
+        margin: 0 20px;
+      }
+
+      .retro-modal-title {
+        font-size: 10px;
+        padding: 0.6rem 0.8rem;
+        letter-spacing: 2px;
+      }
+
+      .retro-modal-body {
+        padding: 1rem 0.8rem;
+      }
+
+      .retro-modal-text {
+        font-size: 11px;
+        line-height: 1.6;
+      }
+
+      .retro-modal-icon {
+        font-size: 32px;
+        margin-bottom: 0.5rem;
+      }
+
+      .retro-modal-footer {
+        padding: 0.8rem;
+      }
+
+      .retro-modal-footer .btn-retro {
+        padding: 0.6rem 1.2rem;
+        font-size: 11px;
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+      }
+    }
+
+    @keyframes bounceIn {
+      0% {
+        transform: scale(0.3) translateY(-100px);
+        opacity: 0;
+      }
+
+      50% {
+        transform: scale(1.05) translateY(0);
+      }
+
+      70% {
+        transform: scale(0.95);
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes blink-cursor {
+
+      0%,
+      49% {
+        opacity: 1;
+      }
+
+      50%,
+      100% {
+        opacity: 0;
+      }
+    }
+
+    /* Fullscreen Canvas Mode */
+    .fullscreen-canvas-mode {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background: var(--horror-black);
+      z-index: 99999 !important;
+      display: flex;
+      flex-direction: column;
+      animation: fadeIn 0.3s ease;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .fullscreen-toolbar {
+      background: var(--horror-gray);
+      border-bottom: 2px solid var(--horror-red);
+      padding: 12px 20px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(0, 0, 0, 0.7);
+      position: relative;
+    }
+
+    .fullscreen-toolbar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 2px,
+          rgba(255, 0, 0, 0.02) 2px,
+          rgba(255, 0, 0, 0.02) 4px);
+      pointer-events: none;
+      animation: flicker 6s infinite;
+    }
+
+    .fullscreen-canvas-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden !important;
+    }
+
+    /* Prevent scrolling when in fullscreen mode */
+    .fullscreen-canvas-mode,
+    .fullscreen-canvas-mode * {
+      overflow: hidden !important;
+      touch-action: none;
+    }
+
+    .fullscreen-canvas-mode canvas {
+      touch-action: none;
+    }
+
+    .fullscreen-canvas-container canvas {
+      border: 2px solid var(--horror-red);
+      box-shadow: 0 0 30px var(--horror-shadow);
+      cursor: crosshair;
+    }
+    
+    /* Desktop: limit canvas size */
+    @media (min-width: 769px) {
+      .fullscreen-canvas-container canvas {
+        max-width: 100%;
+        max-height: 100%;
+      }
+    }
+
+    /* Floating controls over canvas */
+    .floating-controls {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26, 26, 26, 0.95);
+      border: 2px solid var(--horror-red);
+      padding: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(5px);
+      min-width: 280px;
+    }
+
+    .floating-controls-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .floating-controls .tool-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 16px;
+      padding: 0;
+    }
+
+    .floating-controls .btn-retro {
+      padding: 6px 10px;
+      font-size: 14px;
+      min-width: auto;
+      height: 36px;
+    }
+
+    .tool-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--horror-blood);
+      border-radius: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tool-label {
+      font-size: 10px;
+      color: var(--horror-text);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .tool-btn {
+      width: 36px;
+      height: 36px;
+      background: var(--horror-blood);
+      border: 1px solid var(--horror-red);
+      color: var(--horror-pale);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      position: relative;
+    }
+
+    .tool-btn:hover {
+      background: var(--horror-red);
+      box-shadow: 0 0 15px var(--horror-glow);
+      transform: scale(1.05);
+    }
+
+    .tool-btn.active {
+      background: var(--horror-red);
+      box-shadow: 0 0 20px var(--horror-glow), inset 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .color-palette {
+      display: flex;
+      gap: 4px;
+    }
+
+    .color-swatch {
+      width: 28px;
+      height: 28px;
+      border: 2px solid var(--horror-red);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.15);
+      box-shadow: 0 0 10px var(--horror-glow);
+    }
+
+    .color-swatch.active::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-weight: bold;
+      text-shadow: 0 0 3px black;
+      font-size: 18px;
+    }
+
+    /* Responsive adjustments for fullscreen mode */
+    @media (max-width: 768px) {
+      .fullscreen-canvas-mode {
+        flex-direction: row !important;
+      }
+
+      .fullscreen-toolbar {
+        width: 80px !important;
+        height: 100vh !important;
+        border-bottom: none !important;
+        border-right: 2px solid var(--horror-red) !important;
+        flex-direction: column !important;
+        padding: 10px 5px !important;
+        gap: 10px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+      }
+
+      .fullscreen-toolbar::before {
+        background: repeating-linear-gradient(90deg,
+            transparent,
+            transparent 2px,
+            rgba(255, 0, 0, 0.02) 2px,
+            rgba(255, 0, 0, 0.02) 4px);
+      }
+
+      .fullscreen-canvas-container {
+        padding: 10px !important;
+      }
+
+      /* Show floating controls in mobile */
+      .floating-controls {
+        display: flex !important;
+      }
+
+      /* Hide these groups from sidebar in mobile */
+      .mobile-hide {
+        display: none !important;
+      }
+
+      .tool-group {
+        flex-direction: column !important;
+        width: 100% !important;
+        padding: 6px 4px !important;
+        gap: 6px !important;
+      }
+
+      .tool-label {
+        font-size: 8px !important;
+        writing-mode: horizontal-tb !important;
+        text-align: center !important;
+      }
+
+      .tool-btn {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
+      }
+
+      .color-palette {
+        flex-direction: column !important;
+        gap: 3px !important;
+      }
+
+      .color-swatch {
+        width: 32px !important;
+        height: 32px !important;
+      }
+
+      #fs-color-picker {
+        width: 32px !important;
+        height: 32px !important;
+      }
+
+      #fs-brush-size {
+        width: 60px !important;
+        writing-mode: bt-lr !important;
+        -webkit-appearance: slider-vertical !important;
+        height: 100px !important;
+      }
+
+      #fs-size-value {
+        font-size: 10px !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="p-6">
+  <!-- Scan line effect -->
+  <div
+    style="position: fixed; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--horror-red), transparent); animation: scan 4s linear infinite; z-index: 1001; pointer-events: none; opacity: 0.3; will-change: transform;">
+  </div>
+  <style>
+    @keyframes scan {
+      0% {
+        transform: translateY(0);
+      }
+
+      100% {
+        transform: translateY(100vh);
+      }
+    }
+  </style>
+  <!-- Floating creepy elements (optimized) -->
+  <div
+    style="position: fixed; top: 10%; left: 5%; font-size: 40px; color: var(--horror-red); opacity: 0.1; animation: creep 30s linear infinite; z-index: 0; pointer-events: none; will-change: transform;">
+    👁</div>
+  <div
+    style="position: fixed; top: 30%; left: 80%; font-size: 35px; color: var(--horror-red); opacity: 0.12; animation: creep 28s linear infinite 10s; z-index: 0; pointer-events: none; will-change: transform;">
+    🕷</div>
+  <div
+    style="position: fixed; top: 20%; right: 30%; font-size: 20px; color: var(--horror-red); opacity: 0.15; animation: drip 10s linear infinite; z-index: 0; pointer-events: none; will-change: transform;">
+    🩸</div>
+  <div
+    style="position: fixed; top: 50%; left: 40%; font-size: 20px; color: var(--horror-red); opacity: 0.15; animation: drip 12s linear infinite 6s; z-index: 0; pointer-events: none; will-change: transform;">
+    🩸</div>
+
+  <div id="retro-modal-container"></div>
+  <div class="max-w-6xl mx-auto">
+    <div class="window-title mb-4">
+      <div class="title-dot"></div>
+      <div style="animation: glitch 8s infinite;">INBOXPAINT.EXE</div>
+      <div class="ml-auto" style="font-size:9px; opacity:0.7; animation: flicker 5s infinite;">[ RECEIVING... HELP...
+        US... ]</div>
+    </div>
+
+    <div class="grid desktop-grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Perfil izquierdo -->
+      <aside class="col-span-1 md:col-span-1 retro-panel p-4">
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-3">
+          <img id="profile-avatar"
+            src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><rect width='100%' height='100%' fill='%230a0a0a'/><rect x='10' y='10' width='76' height='76' fill='none' stroke='%23ff0000' stroke-width='2'/><text x='50%' y='55%' font-size='40' dominant-baseline='middle' text-anchor='middle' fill='%23ff0000' font-family='Courier New'>?</text></svg>"
+            alt="avatar" class="avatar" />
+          <div class="text-center sm:text-left">
+            <h3 class="font-bold"
+              style="font-size:11px; color: #f0f0f0; letter-spacing: 2px; animation: flicker 6s infinite; text-shadow: 0 0 10px rgba(255, 0, 0, 0.3);"
+              id="profile-name">UNKNOWN_USER</h3>
+            <p style="font-size:10px; color: #e0e0e0; opacity: 0.8; line-height: 1.4;" id="profile-bio">signal.lost...
+              they're.here... don't.look.behind.you... run...</p>
+          </div>
+        </div>
+        <div class="divider-retro"></div>
+        <ul style="font-size:10px;" class="space-y-2">
+          <li><strong
+              style="color: #ff3333; animation: flicker 4s infinite; text-shadow: 0 0 10px var(--horror-glow);">LAST_SEEN:</strong>
+            <a href="#" id="profile-web" style="animation: flicker 5s infinite;">NEVER</a></li>
+        </ul>
+      </aside>
+
+      <!-- Centro: anon form / owner inbox -->
+      <main class="col-span-1 md:col-span-2">
+        <div id="view-root" class="retro-panel p-4">
+          <!-- dynamic content inserted here -->
+        </div>
+      </main>
+    </div>
+
+    <footer class="mt-4 text-center"
+      style="font-size:9px; color: #ff3333; opacity:0.8; letter-spacing: 2px; font-family: 'Courier New', monospace; animation: flicker 8s infinite; text-shadow: 0 0 10px var(--horror-glow);">
+      [ INBOXPAINT.EXE v1.0.0 ] // SIGNAL CORRUPTED // THEY ARE WATCHING // DO NOT CLOSE
+    </footer>
+  </div>
+
+  <script>
+    /* ========= CONFIG =========
+       - Para usar un backend, asigna la URL del servidor a SERVER_URL (ej: 'http://localhost:3000')
+       - Si SERVER_URL está vacío (''), se usa localStorage como fallback.
+       - OWNER token: no hay UI para cambiarlo (seguridad). Debes acceder con ?owner=TU_TOKEN.
+    */
+    const SERVER_URL = 'http://localhost:3000'; // EJ: 'http://localhost:3000'  <-- poner aquí la URL del servidor si quieres backend
+    const DEFAULT_OWNER_TOKEN = 'owner123';
+    const OWNER_TOKEN_KEY = 'retro_owner_token'; // sigue permitiendo lectura local para fallback privado
+    const STORAGE_KEY = 'retro_inbox';
+    const PROFILE_KEY = 'retro_profile';
+
+    // util
+    function qsel(s) { return document.querySelector(s) }
+    function qselAll(s) { return Array.from(document.querySelectorAll(s)); }
+    function getUrlParam(name) { const u = new URL(location.href); return u.searchParams.get(name); }
+
+    // Retro Modal/Alert System
+    function showRetroAlert(message, type = 'info') {
+      const icons = {
+        info: 'ℹ️',
+        success: '✅',
+        warning: '⚠️',
+        error: '❌'
+      };
+
+      const titles = {
+        info: 'Información',
+        success: 'Éxito',
+        warning: 'Advertencia',
+        error: 'Error'
+      };
+
+      const overlay = document.createElement('div');
+      overlay.className = 'retro-modal-overlay';
+      overlay.innerHTML = `
+      <div class="retro-modal">
+        <div class="retro-modal-title">
+          <div class="title-dot"></div>
+          <span>${titles[type]}</span>
+        </div>
+        <div class="retro-modal-body">
+          <div class="retro-modal-icon">${icons[type]}</div>
+          <div class="retro-modal-text">${message}</div>
+        </div>
+        <div class="retro-modal-footer">
+          <button class="btn-retro" id="modal-close-btn">Aceptar</button>
+        </div>
+      </div>
+    `;
+
+      document.body.appendChild(overlay);
+
+      // Function to close modal with fadeOut animation
+      const closeModal = () => {
+        overlay.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => {
+          overlay.remove();
+        }, 300);
+      };
+
+      // Close button
+      overlay.querySelector('#modal-close-btn').addEventListener('click', closeModal);
+
+      // Close on overlay click
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+      });
+
+      // Close on Escape key
+      const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+          closeModal();
+          document.removeEventListener('keydown', handleEscape);
+        }
+      };
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    // token handling (no UI to change) - still stored locally for fallback if you set owner token beforehand in localStorage
+    function getStoredOwnerToken() { return localStorage.getItem(OWNER_TOKEN_KEY) || DEFAULT_OWNER_TOKEN; }
+    function setStoredOwnerTokenForSetupOnly(t) { localStorage.setItem(OWNER_TOKEN_KEY, t); }
+
+    // storage helpers (local fallback)
+    function loadInboxLocal() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch (e) { return []; } }
+    function saveInboxLocal(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+    function pushItemLocal(item) { const arr = loadInboxLocal(); arr.push(item); saveInboxLocal(arr); }
+
+    // profile helpers
+    function loadProfileLocal() { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch (e) { return null; } }
+    function saveProfileLocal(p) { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }
+
+    // id
+    function newid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+    // owner check
+    function isOwner() { const token = getUrlParam('owner'); return token === 'owner123'; }
+
+    // ========== RENDER ==========
+    function render() { const root = qsel('#view-root'); root.innerHTML = ''; if (isOwner()) renderOwnerView(root); else renderAnonView(root); }
+
+    /* ------------------ Anonymous view ------------------ */
+    function renderAnonView(root) {
+      root.innerHTML = `
+      <h2 class="font-bold" style="font-size:16px; margin-bottom:12px; color: var(--jp-soft-purple);">Enviar mensaje anónimo</h2>
+      <p style="font-size:10px; margin-bottom:12px; color: #ff3333; opacity: 0.9; animation: flicker 7s infinite; letter-spacing: 1px; text-shadow: 0 0 10px var(--horror-glow);">⚠ WARNING: TRANSMISSION MAY BE INTERCEPTED ⚠ SENDER IDENTITY: UNKNOWN ⚠</p>
+      <input id="nickInput" type="text" maxlength="20"
+         placeholder="> who.are.you?" 
+         class="w-full" style="margin-bottom:12px;" />
+      <div class="mt-3">
+        <textarea id="anon-text" rows="4" class="w-full" placeholder="> they.can.hear.you... type.carefully..."></textarea>
+      </div>
+      <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <h4 class="font-semibold" style="font-size:11px; margin-bottom:8px; color: #ff0000; letter-spacing: 2px; text-shadow: 0 0 10px var(--horror-glow);">DRAW_ATTACHMENT</h4>
+          <canvas id="draw-canvas" width="400" height="200" class="w-full" style="max-width: 100%; height: auto; background: var(--horror-black);"></canvas>
+          <div class="mt-2 space-y-2">
+            <div class="flex gap-2 items-center flex-wrap" style="font-size:12px;">
+              <label class="flex items-center gap-1">
+                <span style="font-size:10px; color: #f0f0f0;">COLOR:</span>
+                <input id="brush-color" type="color" value="#ff0000" class="cursor-pointer" />
+              </label>
+              <label class="flex items-center gap-1">
+                <span style="font-size:10px; color: #f0f0f0;">SIZE:</span>
+                <input id="brush-size" type="range" min="1" max="20" value="3" class="w-20" />
+                <span id="brush-size-value" class="w-4" style="color: #f0f0f0;">3</span>
+              </label>
+              <button id="undo-stroke" class="btn-retro">UNDO</button>
+              <button id="clear-canvas" class="btn-retro">CLEAR</button>
+            </div>
+            <div class="flex gap-2">
+              <button id="save-drawing" class="btn-retro">ATTACH</button>
+              <button id="fullscreen-canvas" class="btn-retro">⛶ FULLSCREEN</button>
+            </div>
+          </div>
+          <p id="drawing-hint" style="font-size:9px; margin-top:6px; opacity:0.6; color: #ff3333; text-shadow: 0 0 5px var(--horror-glow);">[ DRAW WITH MOUSE/TOUCH ]</p>
+        </div>
+        <div>
+          <h4 class="font-semibold" style="font-size:11px; margin-bottom:8px; color: #ff0000; letter-spacing: 2px; text-shadow: 0 0 10px var(--horror-glow);">TRANSMISSION</h4>
+          <div id="attachment-list" class="p-3 message-box min-h-[120px]" style="font-size:10px;"></div>
+          <div class="mt-3">
+            <button id="send-msg" class="btn-retro">SEND</button>
+          </div>
+        </div>
+      </div>
+      <div class="divider-retro mt-4"></div>
+    `;
+
+      // drawing logic with undo, color picker, and brush size
+      const canvas = qsel('#draw-canvas');
+      const ctx = canvas.getContext('2d');
+      let drawing = false;
+      let strokes = []; // Array to store each stroke for undo functionality
+      let currentStroke = [];
+
+      // Initial brush settings
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#ff0000';
+
+      // Clear canvas with black background
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches && e.touches[0];
+        const clientX = touch ? touch.clientX : e.clientX;
+        const clientY = touch ? touch.clientY : e.clientY;
+
+        // Calculate scale factor between canvas resolution and display size
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        return {
+          x: (clientX - rect.left) * scaleX,
+          y: (clientY - rect.top) * scaleY
+        };
+      }
+
+      function startDrawing(e) {
+        drawing = true;
+        currentStroke = [];
+        const p = getPos(e);
+        currentStroke.push({
+          x: p.x,
+          y: p.y,
+          color: ctx.strokeStyle,
+          lineWidth: ctx.lineWidth,
+          isStart: true
+        });
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+      }
+
+      function draw(e) {
+        if (!drawing) return;
+        const p = getPos(e);
+        currentStroke.push({
+          x: p.x,
+          y: p.y,
+          color: ctx.strokeStyle,
+          lineWidth: ctx.lineWidth
+        });
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+      }
+
+      function stopDrawing() {
+        if (drawing) {
+          drawing = false;
+          ctx.closePath();
+          if (currentStroke.length > 0) {
+            strokes.push([...currentStroke]);
+            currentStroke = [];
+          }
+        }
+      }
+
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, { passive: false });
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, { passive: false });
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('mouseleave', stopDrawing);
+      canvas.addEventListener('touchend', stopDrawing);
+
+      // Brush color change
+      qsel('#brush-color').addEventListener('input', (e) => {
+        ctx.strokeStyle = e.target.value;
+      });
+
+      // Brush size change
+      qsel('#brush-size').addEventListener('input', (e) => {
+        ctx.lineWidth = e.target.value;
+        qsel('#brush-size-value').textContent = e.target.value;
+      });
+
+      // Undo last stroke
+      qsel('#undo-stroke').addEventListener('click', () => {
+        if (strokes.length === 0) return;
+        strokes.pop();
+        redrawCanvas();
+      });
+
+      function redrawCanvas() {
+        // Clear canvas
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Redraw all strokes
+        strokes.forEach(stroke => {
+          if (stroke.length === 0) return;
+          ctx.strokeStyle = stroke[0].color;
+          ctx.lineWidth = stroke[0].lineWidth;
+          ctx.beginPath();
+          stroke.forEach((point, idx) => {
+            if (point.isStart || idx === 0) {
+              ctx.moveTo(point.x, point.y);
+            } else {
+              ctx.lineTo(point.x, point.y);
+            }
+          });
+          ctx.stroke();
+          ctx.closePath();
+        });
+      }
+
+      qsel('#clear-canvas').addEventListener('click', () => {
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        strokes = [];
+        currentStroke = [];
+        qsel('#attachment-list').innerHTML = '';
+        currentAttachment = null;
+      });
+
+      let currentAttachment = null; // dataURL or File object
+
+      // Function to check if canvas is empty
+      function isCanvasEmpty() {
+        return strokes.length === 0;
+      }
+
+      qsel('#save-drawing').addEventListener('click', () => {
+        // Check if canvas is empty
+        if (isCanvasEmpty()) {
+          showRetroAlert('⚠ CREATE_DRAWING_FIRST ⚠', 'warning');
+          return;
+        }
+
+        const data = canvas.toDataURL('image/png');
+        currentAttachment = data;
+        qsel('#attachment-list').innerHTML = `<div style="font-size:12px; color: var(--jp-soft-purple); text-align:center; padding:20px;">✅ ¡Dibujo adjuntado! <br><button id="remove-att" class="mt-2 btn-retro">✕ Quitar</button></div>`;
+        qsel('#remove-att').addEventListener('click', () => {
+          currentAttachment = null;
+          qsel('#attachment-list').innerHTML = '';
+        });
+      });
+
+      // Fullscreen canvas mode
+      qsel('#fullscreen-canvas').addEventListener('click', () => {
+        // Prevent fullscreen on mobile devices
+        if (window.innerWidth <= 768) {
+          showRetroAlert('⚠ FULLSCREEN_NOT_AVAILABLE_ON_MOBILE ⚠', 'warning');
+          return;
+        }
+        openFullscreenCanvas();
+      });
+
+      async function openFullscreenCanvas() {
+        // Double check - prevent on mobile
+        if (window.innerWidth <= 768) {
+          return;
+        }
+        // Save current canvas state
+        const savedData = canvas.toDataURL();
+
+        // Save current brush color and size
+        const currentColor = ctx.strokeStyle;
+        const currentSize = ctx.lineWidth;
+
+        // Create fullscreen overlay
+        const fullscreenDiv = document.createElement('div');
+        fullscreenDiv.className = 'fullscreen-canvas-mode';
+        fullscreenDiv.innerHTML = `
+        <div class="fullscreen-toolbar">
+          <div class="tool-group">
+            <span class="tool-label">TOOLS:</span>
+            <button class="tool-btn active" id="fs-tool-pen" title="Pen">✏️</button>
+            <button class="tool-btn" id="fs-tool-eraser" title="Eraser">🧹</button>
+            <button class="tool-btn" id="fs-tool-line" title="Line">📏</button>
+            <button class="tool-btn" id="fs-tool-rect" title="Rectangle">▢</button>
+            <button class="tool-btn" id="fs-tool-circle" title="Circle">○</button>
+            <button class="tool-btn" id="fs-tool-fill" title="Fill">🪣</button>
+          </div>
+          
+          <div class="tool-group">
+            <span class="tool-label">COLORS:</span>
+            <div class="color-palette">
+              <div class="color-swatch active" data-color="#ff0000" style="background: #ff0000;" title="Red"></div>
+              <div class="color-swatch" data-color="#ffffff" style="background: #ffffff;" title="White"></div>
+              <div class="color-swatch" data-color="#000000" style="background: #000000;" title="Black"></div>
+              <div class="color-swatch" data-color="#00ff00" style="background: #00ff00;" title="Green"></div>
+              <div class="color-swatch" data-color="#0000ff" style="background: #0000ff;" title="Blue"></div>
+              <div class="color-swatch" data-color="#ffff00" style="background: #ffff00;" title="Yellow"></div>
+              <div class="color-swatch" data-color="#ff00ff" style="background: #ff00ff;" title="Magenta"></div>
+              <div class="color-swatch" data-color="#00ffff" style="background: #00ffff;" title="Cyan"></div>
+            </div>
+            <input type="color" id="fs-color-picker" value="#ff0000" title="Custom Color" style="width: 32px; height: 32px; cursor: pointer;">
+          </div>
+          
+          <div class="tool-group mobile-hide">
+            <span class="tool-label">SIZE:</span>
+            <input type="range" id="fs-brush-size" min="1" max="50" value="3" style="width: 100px;">
+            <span id="fs-size-value" style="color: var(--horror-text); min-width: 30px; font-size: 12px;">3px</span>
+          </div>
+          
+          <div class="tool-group mobile-hide">
+            <button class="btn-retro" id="fs-undo">↶ UNDO</button>
+            <button class="btn-retro" id="fs-redo">↷ REDO</button>
+            <button class="btn-retro" id="fs-clear">🗑 CLEAR</button>
+          </div>
+          
+          <div class="tool-group mobile-hide" style="margin-left: auto;">
+            <button class="btn-retro" id="fs-save">✓ APPLY</button>
+            <button class="btn-retro" id="fs-cancel">✕ CANCEL</button>
+          </div>
+        </div>
+        
+        <div class="fullscreen-canvas-container">
+          <!-- Floating controls for mobile -->
+          <div class="floating-controls">
+            <!-- Row 1: Brush size -->
+            <div class="floating-controls-row">
+              <input type="range" id="fs-brush-size-mobile" min="1" max="50" value="3" style="width: 120px;">
+              <span id="fs-size-value-mobile" style="color: var(--horror-text); font-size: 12px; min-width: 35px;">3px</span>
+            </div>
+            <!-- Row 2: Action buttons -->
+            <div class="floating-controls-row">
+              <button class="tool-btn" id="fs-undo-mobile" title="Undo">↶</button>
+              <button class="tool-btn" id="fs-redo-mobile" title="Redo">↷</button>
+              <button class="tool-btn" id="fs-clear-mobile" title="Clear">🗑</button>
+              <button class="btn-retro" id="fs-save-mobile" title="Apply">✓</button>
+              <button class="btn-retro" id="fs-cancel-mobile" title="Cancel">✕</button>
+            </div>
+          </div>
+          <canvas id="fs-canvas" style="background: var(--horror-black);"></canvas>
+        </div>
+      `;
+
+        document.body.appendChild(fullscreenDiv);
+
+        // Enter native fullscreen mode
+        try {
+          if (fullscreenDiv.requestFullscreen) {
+            await fullscreenDiv.requestFullscreen();
+          } else if (fullscreenDiv.webkitRequestFullscreen) {
+            await fullscreenDiv.webkitRequestFullscreen();
+          } else if (fullscreenDiv.mozRequestFullScreen) {
+            await fullscreenDiv.mozRequestFullScreen();
+          } else if (fullscreenDiv.msRequestFullscreen) {
+            await fullscreenDiv.msRequestFullscreen();
+          }
+        } catch (err) {
+          console.warn('Fullscreen not supported or denied', err);
+        }
+
+        // Prevent scrolling
+        document.body.style.overflow = 'hidden';
+
+        const fsCanvas = qsel('#fs-canvas');
+
+        // Set canvas size to maximum available space
+        const toolbar = qsel('.fullscreen-toolbar');
+        const container = qsel('.fullscreen-canvas-container');
+
+        // Wait a bit for fullscreen to activate, then set size
+        setTimeout(() => {
+          const toolbarHeight = toolbar.offsetHeight;
+          const availableWidth = window.innerWidth - 40; // 20px padding on each side
+          const availableHeight = window.innerHeight - toolbarHeight - 40;
+
+          // Check if mobile - also check for touch support
+          const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
+          const toolbarWidth = isMobile ? 80 : 0;
+          
+          console.log('Device detection:', {
+            windowWidth: window.innerWidth,
+            isMobile: isMobile,
+            hasTouch: 'ontouchstart' in window
+          });
+
+          // Set canvas dimensions based on device
+          if (isMobile) {
+            // Mobile: Use ALL available space
+            // Calculate available space first
+            const availableContainerWidth = window.innerWidth - toolbarWidth - 20;
+            const availableContainerHeight = window.innerHeight - 120; // Account for floating controls
+            
+            // Since we'll rotate 90°:
+            // canvas.width will become visual HEIGHT (should use availableContainerHeight)
+            // canvas.height will become visual WIDTH (should use availableContainerWidth)
+            
+            // Use ALL available space for maximum canvas size
+            fsCanvas.width = availableContainerHeight;  // This becomes visual height after rotation
+            fsCanvas.height = availableContainerWidth;  // This becomes visual width after rotation
+            
+            // Scale should be 1.0 since we're matching the available space
+            const scale = 1.0;
+            
+            console.log('Mobile canvas scaling:', {
+              availableContainerWidth,
+              availableContainerHeight,
+              canvasWidth: fsCanvas.width,
+              canvasHeight: fsCanvas.height,
+              'After rotation - Visual Width': fsCanvas.height,
+              'After rotation - Visual Height': fsCanvas.width,
+              finalScale: scale,
+              transformApplied: `rotate(90deg) scale(${scale})`
+            });
+            
+            fsCanvas.style.transform = `rotate(90deg) scale(${scale})`;
+            fsCanvas.style.transformOrigin = 'center center';
+            fsCanvas.style.width = fsCanvas.width + 'px';
+            fsCanvas.style.height = fsCanvas.height + 'px';
+            
+            // Adjust container to accommodate rotated canvas
+            container.style.display = 'flex';
+            container.style.alignItems = 'center';
+            container.style.justifyContent = 'center';
+            
+            console.log('Canvas style after transform:', fsCanvas.style.transform);
+          } else {
+            // Desktop: Use large dimensions
+            fsCanvas.width = Math.max(1600, availableWidth);
+            fsCanvas.height = Math.max(900, availableHeight);
+            fsCanvas.style.transform = 'none';
+            fsCanvas.style.width = 'auto';
+            fsCanvas.style.height = 'auto';
+            
+            console.log('Desktop mode - no rotation');
+          }
+
+          // Redraw with new size
+          fsCtx.fillStyle = '#0a0a0a';
+          fsCtx.fillRect(0, 0, fsCanvas.width, fsCanvas.height);
+
+          // Reload saved image WITHOUT SCALING - draw at original size
+          const img = new Image();
+          img.onload = () => {
+            // Draw at original canvas size (400x200) without scaling
+            fsCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            if (strokes.length > 0) {
+              // Scale strokes to new canvas size
+              const scaleX = fsCanvas.width / canvas.width;
+              const scaleY = fsCanvas.height / canvas.height;
+
+              fsStrokes = strokes.map(stroke => {
+                if (Array.isArray(stroke)) {
+                  // Scale pen/eraser strokes
+                  return stroke.map(point => ({
+                    ...point,
+                    x: point.x * scaleX,
+                    y: point.y * scaleY
+                  }));
+                } else if (stroke.tool === 'line' || stroke.tool === 'rect' || stroke.tool === 'circle') {
+                  // Scale shape strokes
+                  return {
+                    ...stroke,
+                    start: { x: stroke.start.x * scaleX, y: stroke.start.y * scaleY },
+                    end: { x: stroke.end.x * scaleX, y: stroke.end.y * scaleY }
+                  };
+                } else {
+                  return stroke;
+                }
+              });
+
+              // Redraw with scaled strokes
+              redrawFsCanvas();
+            }
+          };
+          img.src = savedData;
+        }, 100);
+
+        const fsCtx = fsCanvas.getContext('2d');
+        let fsDrawing = false;
+        let fsStrokes = [];
+        let fsRedoStack = [];
+        let fsCurrentStroke = [];
+        let fsTool = 'pen';
+        let fsStartPos = null;
+        let fsTempCanvas = null;
+        let savedColor = currentColor; // Save the color for when switching from eraser
+        
+        // Save current tool and color state (for undo/redo restoration)
+        let currentToolState = {
+          tool: 'pen',
+          color: currentColor,
+          size: currentSize
+        };
+
+        // Initial settings - use current canvas settings
+        fsCtx.lineWidth = currentSize;
+        fsCtx.lineCap = 'round';
+        fsCtx.strokeStyle = currentColor;
+
+        // Update UI to match current settings
+        qsel('#fs-brush-size').value = currentSize;
+        qsel('#fs-size-value').textContent = currentSize + 'px';
+        qsel('#fs-color-picker').value = currentColor;
+
+        // Update mobile controls if they exist
+        const mobileBrushSizeInit = qsel('#fs-brush-size-mobile');
+        if (mobileBrushSizeInit) {
+          mobileBrushSizeInit.value = currentSize;
+          qsel('#fs-size-value-mobile').textContent = currentSize + 'px';
+        }
+
+        // Set active color swatch if it matches
+        qselAll('.color-swatch').forEach(swatch => {
+          if (swatch.dataset.color.toLowerCase() === currentColor.toLowerCase()) {
+            swatch.classList.add('active');
+          }
+        });
+
+        // Tool selection
+        qselAll('.tool-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            qselAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const previousTool = fsTool;
+            fsTool = btn.id.replace('fs-tool-', '');
+
+            // Handle color when switching tools
+            if (fsTool === 'eraser') {
+              // Save current color before switching to eraser
+              if (previousTool !== 'eraser') {
+                savedColor = fsCtx.strokeStyle;
+              }
+            } else if (previousTool === 'eraser') {
+              // Restore saved color when switching from eraser
+              fsCtx.strokeStyle = savedColor;
+              fsCtx.fillStyle = savedColor;
+              qsel('#fs-color-picker').value = savedColor;
+
+              // Update active color swatch
+              qselAll('.color-swatch').forEach(swatch => {
+                swatch.classList.remove('active');
+                if (swatch.dataset.color.toLowerCase() === savedColor.toLowerCase()) {
+                  swatch.classList.add('active');
+                }
+              });
+            }
+            
+            // Update current tool state
+            currentToolState.tool = fsTool;
+            currentToolState.color = fsCtx.strokeStyle;
+            currentToolState.size = fsCtx.lineWidth;
+          });
+        });
+
+        // Color selection
+        qselAll('.color-swatch').forEach(swatch => {
+          swatch.addEventListener('click', () => {
+            qselAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            swatch.classList.add('active');
+            const color = swatch.dataset.color;
+            fsCtx.strokeStyle = color;
+            fsCtx.fillStyle = color;
+            qsel('#fs-color-picker').value = color;
+            // Save color when not in eraser mode
+            if (fsTool !== 'eraser') {
+              savedColor = color;
+            }
+            // Update current tool state
+            currentToolState.color = color;
+          });
+        });
+
+        qsel('#fs-color-picker').addEventListener('input', (e) => {
+          qselAll('.color-swatch').forEach(s => s.classList.remove('active'));
+          fsCtx.strokeStyle = e.target.value;
+          fsCtx.fillStyle = e.target.value;
+          // Save color when not in eraser mode
+          if (fsTool !== 'eraser') {
+            savedColor = e.target.value;
+          }
+          // Update current tool state
+          currentToolState.color = e.target.value;
+        });
+
+        // Brush size
+        qsel('#fs-brush-size').addEventListener('input', (e) => {
+          fsCtx.lineWidth = e.target.value;
+          qsel('#fs-size-value').textContent = e.target.value + 'px';
+          // Sync with mobile slider
+          const mobileSlider = qsel('#fs-brush-size-mobile');
+          if (mobileSlider) {
+            mobileSlider.value = e.target.value;
+            qsel('#fs-size-value-mobile').textContent = e.target.value + 'px';
+          }
+          // Update current tool state
+          currentToolState.size = e.target.value;
+        });
+
+        // Mobile brush size (duplicate for floating controls)
+        const mobileBrushSize = qsel('#fs-brush-size-mobile');
+        if (mobileBrushSize) {
+          mobileBrushSize.addEventListener('input', (e) => {
+            fsCtx.lineWidth = e.target.value;
+            qsel('#fs-size-value-mobile').textContent = e.target.value + 'px';
+            // Sync with desktop slider
+            qsel('#fs-brush-size').value = e.target.value;
+            qsel('#fs-size-value').textContent = e.target.value + 'px';
+            // Update current tool state
+            currentToolState.size = e.target.value;
+          });
+        }
+
+        // Drawing functions
+        function getFsPos(e) {
+          const rect = fsCanvas.getBoundingClientRect();
+          const touch = e.touches && e.touches[0];
+          const clientX = touch ? touch.clientX : e.clientX;
+          const clientY = touch ? touch.clientY : e.clientY;
+          
+          // Get position relative to canvas
+          let x = clientX - rect.left;
+          let y = clientY - rect.top;
+          
+          // Check if canvas is rotated (mobile)
+          const isMobile = window.innerWidth <= 768;
+          if (isMobile) {
+            // Canvas is rotated 90° clockwise
+            // Transform coordinates: rotate -90° around center
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            // Translate to origin
+            x -= centerX;
+            y -= centerY;
+            
+            // Rotate -90° (swap and negate)
+            const rotatedX = y;
+            const rotatedY = -x;
+            
+            // Translate back and scale to canvas coordinates
+            const scaleX = fsCanvas.width / rect.height; // swapped
+            const scaleY = fsCanvas.height / rect.width; // swapped
+            
+            return {
+              x: (rotatedX + rect.height / 2) * scaleX,
+              y: (rotatedY + rect.width / 2) * scaleY
+            };
+          } else {
+            // Desktop: normal scaling
+            const scaleX = fsCanvas.width / rect.width;
+            const scaleY = fsCanvas.height / rect.height;
+            return {
+              x: x * scaleX,
+              y: y * scaleY
+            };
+          }
+        }
+
+        function startFsDrawing(e) {
+          fsDrawing = true;
+          const pos = getFsPos(e);
+          fsStartPos = pos;
+
+          if (fsTool === 'pen' || fsTool === 'eraser') {
+            fsCurrentStroke = [];
+            fsCurrentStroke.push({
+              x: pos.x,
+              y: pos.y,
+              color: fsTool === 'eraser' ? '#0a0a0a' : fsCtx.strokeStyle,
+              lineWidth: fsCtx.lineWidth,
+              isStart: true,
+              tool: fsTool
+            });
+            fsCtx.beginPath();
+            fsCtx.moveTo(pos.x, pos.y);
+          } else if (fsTool === 'fill') {
+            // Simple fill (just fill with current color)
+            fsCtx.fillStyle = fsCtx.strokeStyle;
+            fsCtx.fillRect(0, 0, fsCanvas.width, fsCanvas.height);
+            fsStrokes.push({ tool: 'fill', color: fsCtx.strokeStyle });
+            fsRedoStack = [];
+            fsDrawing = false;
+          } else {
+            // For shapes, save current canvas state
+            fsTempCanvas = fsCtx.getImageData(0, 0, fsCanvas.width, fsCanvas.height);
+          }
+        }
+
+        function drawFs(e) {
+          if (!fsDrawing) return;
+          const pos = getFsPos(e);
+
+          if (fsTool === 'pen' || fsTool === 'eraser') {
+            fsCurrentStroke.push({
+              x: pos.x,
+              y: pos.y,
+              color: fsTool === 'eraser' ? '#0a0a0a' : fsCtx.strokeStyle,
+              lineWidth: fsCtx.lineWidth,
+              tool: fsTool
+            });
+            fsCtx.strokeStyle = fsTool === 'eraser' ? '#0a0a0a' : fsCurrentStroke[0].color;
+            fsCtx.lineTo(pos.x, pos.y);
+            fsCtx.stroke();
+          } else if (fsTool === 'line' || fsTool === 'rect' || fsTool === 'circle') {
+            // Restore canvas and draw preview
+            if (fsTempCanvas) {
+              fsCtx.putImageData(fsTempCanvas, 0, 0);
+            }
+
+            fsCtx.strokeStyle = fsCtx.strokeStyle; // Preserve color
+            fsCtx.lineWidth = fsCtx.lineWidth; // Preserve line width
+            fsCtx.beginPath();
+
+            if (fsTool === 'line') {
+              fsCtx.moveTo(fsStartPos.x, fsStartPos.y);
+              fsCtx.lineTo(pos.x, pos.y);
+              fsCtx.stroke();
+            } else if (fsTool === 'rect') {
+              fsCtx.strokeRect(fsStartPos.x, fsStartPos.y, pos.x - fsStartPos.x, pos.y - fsStartPos.y);
+            } else if (fsTool === 'circle') {
+              const radius = Math.sqrt(Math.pow(pos.x - fsStartPos.x, 2) + Math.pow(pos.y - fsStartPos.y, 2));
+              fsCtx.arc(fsStartPos.x, fsStartPos.y, radius, 0, 2 * Math.PI);
+              fsCtx.stroke();
+            }
+          }
+        }
+
+        function stopFsDrawing(e) {
+          if (!fsDrawing) return;
+
+          const pos = getFsPos(e || { clientX: fsStartPos?.x || 0, clientY: fsStartPos?.y || 0 });
+
+          if (fsTool === 'pen' || fsTool === 'eraser') {
+            if (fsCurrentStroke.length > 0) {
+              fsStrokes.push([...fsCurrentStroke]);
+              fsRedoStack = [];
+            }
+          } else if (fsTool === 'line' || fsTool === 'rect' || fsTool === 'circle') {
+            // Save shape as stroke
+            const shapeData = {
+              tool: fsTool,
+              start: { x: fsStartPos.x, y: fsStartPos.y },
+              end: { x: pos.x, y: pos.y },
+              color: fsCtx.strokeStyle,
+              lineWidth: fsCtx.lineWidth
+            };
+            fsStrokes.push(shapeData);
+            fsRedoStack = [];
+          }
+
+          fsDrawing = false;
+          fsCtx.closePath();
+          fsCurrentStroke = [];
+          fsTempCanvas = null;
+        }
+
+        // Event listeners
+        fsCanvas.addEventListener('mousedown', startFsDrawing);
+        fsCanvas.addEventListener('mousemove', drawFs);
+        fsCanvas.addEventListener('mouseup', (e) => stopFsDrawing(e));
+        fsCanvas.addEventListener('mouseleave', (e) => stopFsDrawing(e));
+        fsCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startFsDrawing(e); }, { passive: false });
+        fsCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); drawFs(e); }, { passive: false });
+        fsCanvas.addEventListener('touchend', (e) => { e.preventDefault(); stopFsDrawing(e); }, { passive: false });
+
+        // Undo/Redo
+        qsel('#fs-undo').addEventListener('click', () => {
+          if (fsStrokes.length === 0) return;
+          fsRedoStack.push(fsStrokes.pop());
+          redrawFsCanvas();
+          // Restore current tool state after redraw
+          restoreToolState();
+        });
+
+        qsel('#fs-redo').addEventListener('click', () => {
+          if (fsRedoStack.length === 0) return;
+          fsStrokes.push(fsRedoStack.pop());
+          redrawFsCanvas();
+          // Restore current tool state after redraw
+          restoreToolState();
+        });
+
+        // Mobile undo/redo (duplicate for floating controls)
+        const mobileUndo = qsel('#fs-undo-mobile');
+        if (mobileUndo) {
+          mobileUndo.addEventListener('click', () => {
+            if (fsStrokes.length === 0) return;
+            fsRedoStack.push(fsStrokes.pop());
+            redrawFsCanvas();
+            // Restore current tool state after redraw
+            restoreToolState();
+          });
+        }
+
+        const mobileRedo = qsel('#fs-redo-mobile');
+        if (mobileRedo) {
+          mobileRedo.addEventListener('click', () => {
+            if (fsRedoStack.length === 0) return;
+            fsStrokes.push(fsRedoStack.pop());
+            redrawFsCanvas();
+            // Restore current tool state after redraw
+            restoreToolState();
+          });
+        }
+
+        // Function to restore tool state after undo/redo
+        function restoreToolState() {
+          fsCtx.strokeStyle = currentToolState.color;
+          fsCtx.fillStyle = currentToolState.color;
+          fsCtx.lineWidth = currentToolState.size;
+          
+          // Update UI controls
+          qsel('#fs-color-picker').value = currentToolState.color;
+          qsel('#fs-brush-size').value = currentToolState.size;
+          qsel('#fs-size-value').textContent = currentToolState.size + 'px';
+          
+          const mobileBrushSizeRestore = qsel('#fs-brush-size-mobile');
+          if (mobileBrushSizeRestore) {
+            mobileBrushSizeRestore.value = currentToolState.size;
+            qsel('#fs-size-value-mobile').textContent = currentToolState.size + 'px';
+          }
+          
+          // Restore active color swatch
+          qselAll('.color-swatch').forEach(swatch => {
+            swatch.classList.remove('active');
+            if (swatch.dataset.color.toLowerCase() === currentToolState.color.toLowerCase()) {
+              swatch.classList.add('active');
+            }
+          });
+          
+          // Restore active tool button
+          qselAll('.tool-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.id === 'fs-tool-' + currentToolState.tool) {
+              btn.classList.add('active');
+            }
+          });
+          
+          fsTool = currentToolState.tool;
+        }
+
+        function redrawFsCanvas() {
+          fsCtx.fillStyle = '#0a0a0a';
+          fsCtx.fillRect(0, 0, fsCanvas.width, fsCanvas.height);
+
+          fsStrokes.forEach(stroke => {
+            if (Array.isArray(stroke)) {
+              // Regular pen/eraser stroke
+              if (stroke.length === 0) return;
+              fsCtx.strokeStyle = stroke[0].color;
+              fsCtx.lineWidth = stroke[0].lineWidth;
+              fsCtx.beginPath();
+              stroke.forEach((point, idx) => {
+                if (point.isStart || idx === 0) {
+                  fsCtx.moveTo(point.x, point.y);
+                } else {
+                  fsCtx.lineTo(point.x, point.y);
+                }
+              });
+              fsCtx.stroke();
+              fsCtx.closePath();
+            } else if (stroke.tool === 'fill') {
+              fsCtx.fillStyle = stroke.color;
+              fsCtx.fillRect(0, 0, fsCanvas.width, fsCanvas.height);
+            } else if (stroke.tool === 'line') {
+              fsCtx.strokeStyle = stroke.color;
+              fsCtx.lineWidth = stroke.lineWidth;
+              fsCtx.beginPath();
+              fsCtx.moveTo(stroke.start.x, stroke.start.y);
+              fsCtx.lineTo(stroke.end.x, stroke.end.y);
+              fsCtx.stroke();
+              fsCtx.closePath();
+            } else if (stroke.tool === 'rect') {
+              fsCtx.strokeStyle = stroke.color;
+              fsCtx.lineWidth = stroke.lineWidth;
+              fsCtx.beginPath();
+              fsCtx.strokeRect(stroke.start.x, stroke.start.y, stroke.end.x - stroke.start.x, stroke.end.y - stroke.start.y);
+              fsCtx.closePath();
+            } else if (stroke.tool === 'circle') {
+              fsCtx.strokeStyle = stroke.color;
+              fsCtx.lineWidth = stroke.lineWidth;
+              fsCtx.beginPath();
+              const radius = Math.sqrt(Math.pow(stroke.end.x - stroke.start.x, 2) + Math.pow(stroke.end.y - stroke.start.y, 2));
+              fsCtx.arc(stroke.start.x, stroke.start.y, radius, 0, 2 * Math.PI);
+              fsCtx.stroke();
+              fsCtx.closePath();
+            }
+          });
+        }
+
+        // Clear
+        qsel('#fs-clear').addEventListener('click', () => {
+          fsCtx.fillStyle = '#0a0a0a';
+          fsCtx.fillRect(0, 0, fsCanvas.width, fsCanvas.height);
+          fsStrokes = [];
+          fsRedoStack = [];
+        });
+
+        // Mobile clear (duplicate for floating controls)
+        const mobileClear = qsel('#fs-clear-mobile');
+        if (mobileClear) {
+          mobileClear.addEventListener('click', () => {
+            fsCtx.fillStyle = '#0a0a0a';
+            fsCtx.fillRect(0, 0, fsCanvas.width, fsCanvas.height);
+            fsStrokes = [];
+            fsRedoStack = [];
+          });
+        }
+
+        // Exit fullscreen function
+        async function exitFullscreenMode() {
+          // Restore scrolling
+          document.body.style.overflow = '';
+
+          // Exit fullscreen
+          try {
+            if (document.exitFullscreen) {
+              await document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+              await document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+              await document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+              await document.msExitFullscreen();
+            }
+          } catch (err) {
+            console.warn('Error exiting fullscreen', err);
+          }
+
+          fullscreenDiv.style.animation = 'fadeOut 0.3s ease';
+          setTimeout(() => fullscreenDiv.remove(), 300);
+        }
+
+        // Save and apply
+        qsel('#fs-save').addEventListener('click', async () => {
+          // Transfer fullscreen canvas to main canvas
+          const fsData = fsCanvas.toDataURL();
+          const imgTemp = new Image();
+          imgTemp.onload = () => {
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Draw the fullscreen canvas scaled down to fit the original canvas
+            ctx.drawImage(imgTemp, 0, 0, canvas.width, canvas.height);
+
+            // Scale strokes back to original canvas size
+            const scaleX = canvas.width / fsCanvas.width;
+            const scaleY = canvas.height / fsCanvas.height;
+
+            strokes = fsStrokes.map(stroke => {
+              if (Array.isArray(stroke)) {
+                // Scale pen/eraser strokes
+                return stroke.map(point => ({
+                  ...point,
+                  x: point.x * scaleX,
+                  y: point.y * scaleY
+                }));
+              } else if (stroke.tool === 'line' || stroke.tool === 'rect' || stroke.tool === 'circle') {
+                // Scale shape strokes
+                return {
+                  ...stroke,
+                  start: { x: stroke.start.x * scaleX, y: stroke.start.y * scaleY },
+                  end: { x: stroke.end.x * scaleX, y: stroke.end.y * scaleY }
+                };
+              } else {
+                return stroke;
+              }
+            });
+
+            // Update main canvas color and size to match fullscreen
+            ctx.strokeStyle = fsCtx.strokeStyle;
+            ctx.lineWidth = fsCtx.lineWidth;
+          };
+          imgTemp.src = fsData;
+
+          await exitFullscreenMode();
+        });
+
+        // Cancel
+        qsel('#fs-cancel').addEventListener('click', async () => {
+          await exitFullscreenMode();
+        });
+
+        // Mobile save/cancel (duplicate for floating controls)
+        const mobileSave = qsel('#fs-save-mobile');
+        if (mobileSave) {
+          mobileSave.addEventListener('click', async () => {
+            // Transfer fullscreen canvas to main canvas
+            const fsData = fsCanvas.toDataURL();
+            const imgTemp = new Image();
+            imgTemp.onload = () => {
+              ctx.fillStyle = '#0a0a0a';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(imgTemp, 0, 0, canvas.width, canvas.height);
+
+              const scaleX = canvas.width / fsCanvas.width;
+              const scaleY = canvas.height / fsCanvas.height;
+
+              strokes = fsStrokes.map(stroke => {
+                if (Array.isArray(stroke)) {
+                  return stroke.map(point => ({
+                    ...point,
+                    x: point.x * scaleX,
+                    y: point.y * scaleY
+                  }));
+                } else if (stroke.tool === 'line' || stroke.tool === 'rect' || stroke.tool === 'circle') {
+                  return {
+                    ...stroke,
+                    start: { x: stroke.start.x * scaleX, y: stroke.start.y * scaleY },
+                    end: { x: stroke.end.x * scaleX, y: stroke.end.y * scaleY }
+                  };
+                } else {
+                  return stroke;
+                }
+              });
+
+              ctx.strokeStyle = fsCtx.strokeStyle;
+              ctx.lineWidth = fsCtx.lineWidth;
+            };
+            imgTemp.src = fsData;
+
+            await exitFullscreenMode();
+          });
+        }
+
+        const mobileCancel = qsel('#fs-cancel-mobile');
+        if (mobileCancel) {
+          mobileCancel.addEventListener('click', async () => {
+            await exitFullscreenMode();
+          });
+        }
+
+        // Handle fullscreen change (when user presses ESC or exits manually)
+        const handleFullscreenChange = async () => {
+          if (!document.fullscreenElement &&
+            !document.webkitFullscreenElement &&
+            !document.mozFullScreenElement &&
+            !document.msFullscreenElement) {
+            // User exited fullscreen, close the editor
+            document.body.style.overflow = '';
+            fullscreenDiv.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => fullscreenDiv.remove(), 300);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+          }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+        // Handle window resize in fullscreen
+        const handleResize = () => {
+          if (document.fullscreenElement || document.webkitFullscreenElement ||
+            document.mozFullScreenElement || document.msFullscreenElement) {
+            const toolbar = qsel('.fullscreen-toolbar');
+            if (toolbar && fsCanvas) {
+              const isMobile = window.innerWidth <= 768;
+              const toolbarHeight = isMobile ? 0 : toolbar.offsetHeight;
+              const toolbarWidth = isMobile ? 80 : 0;
+              const availableWidth = window.innerWidth - 40 - toolbarWidth;
+              const availableHeight = window.innerHeight - toolbarHeight - 40;
+
+              const oldWidth = fsCanvas.width;
+              const oldHeight = fsCanvas.height;
+
+              // Save current canvas
+              const tempData = fsCtx.getImageData(0, 0, oldWidth, oldHeight);
+
+              // Set dimensions based on device
+              if (isMobile) {
+                const availableContainerWidth = window.innerWidth - toolbarWidth - 20;
+                const availableContainerHeight = window.innerHeight - 120;
+                
+                // Use ALL available space
+                fsCanvas.width = availableContainerHeight;
+                fsCanvas.height = availableContainerWidth;
+                
+                const scale = 1.0;
+                
+                fsCanvas.style.transform = `rotate(90deg) scale(${scale})`;
+                fsCanvas.style.transformOrigin = 'center center';
+                fsCanvas.style.width = fsCanvas.width + 'px';
+                fsCanvas.style.height = fsCanvas.height + 'px';
+                container.style.display = 'flex';
+                container.style.alignItems = 'center';
+                container.style.justifyContent = 'center';
+              } else {
+                fsCanvas.width = Math.max(1600, availableWidth);
+                fsCanvas.height = Math.max(900, availableHeight);
+                fsCanvas.style.transform = 'none';
+                fsCanvas.style.width = 'auto';
+                fsCanvas.style.height = 'auto';
+              }
+
+              // Restore canvas
+              fsCtx.fillStyle = '#0a0a0a';
+              fsCtx.fillRect(0, 0, fsCanvas.width, fsCanvas.height);
+              fsCtx.putImageData(tempData, 0, 0);
+            }
+          }
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        // Clean up resize listener when closing
+        fullscreenDiv.addEventListener('remove', () => {
+          window.removeEventListener('resize', handleResize);
+        });
+      }
+
+      qsel('#send-msg').addEventListener('click', async () => {
+        const text = qsel('#anon-text').value.trim();
+        const nick = qsel('#nickInput').value.trim() || 'Anónimo';
+        if (!text && !currentAttachment) {
+          showRetroAlert('⚠ TRANSMISSION_EMPTY // ADD_MESSAGE_OR_DRAWING ⚠', 'warning');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('text', `[${nick}]: ${text}`);
+
+        if (currentAttachment && currentAttachment.startsWith('data:')) {
+          const blob = dataURLtoBlob(currentAttachment);
+          formData.append('drawing', blob, `${Date.now()}.png`);
+        }
+
+        try {
+          const res = await fetch(SERVER_URL + '/api/messages', { method: 'POST', body: formData });
+          if (!res.ok) throw new Error('Falló el envío');
+          showRetroAlert('✓ TRANSMISSION_SENT // SIGNAL_RECEIVED ✓', 'success');
+        } catch (err) {
+          console.error(err);
+          showRetroAlert('✗ TRANSMISSION_FAILED // RETRY_CONNECTION ✗', 'error');
+        }
+
+        qsel('#anon-text').value = '';
+        qsel('#attachment-list').innerHTML = '';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        currentAttachment = null;
+      });
+    }
+
+    /* ------------------ Owner view ------------------ */
+    function renderOwnerView(root) {
+      root.innerHTML = `
+      <div class="flex justify-between items-start gap-4">
+        <div>
+          <h2 class="font-bold" style="font-size:16px; margin-bottom:12px; color: var(--horror-red); letter-spacing: 2px; text-shadow: 0 0 10px var(--horror-glow);">ADMIN_CONTROL_PANEL</h2>
+          <p style="font-size:12px; color: var(--horror-text); animation: flicker 8s infinite;">[ MONITORING INCOMING TRANSMISSIONS... ]</p>
+        </div>
+      </div>
+
+      <div class="mt-3 flex flex-wrap gap-2">
+        <button id="refresh-inbox" class="btn-retro">⟳ REFRESH</button>
+        <button id="download-all" class="btn-retro">💾 SAVE_ALL</button>
+      </div>
+
+      <div class="mt-4 retro-panel p-4">
+        <h3 class="font-semibold" style="font-size:14px; margin-bottom:12px; color: var(--horror-red); letter-spacing: 2px; text-shadow: 0 0 10px var(--horror-glow);">PUBLIC_PROFILE_DATA</h3>
+        <div class="flex flex-col sm:flex-row gap-3 items-center sm:items-start mt-2">
+          <img id="owner-avatar" src="" alt="avatar" class="avatar" />
+          <div class="flex-1 w-full">
+            <input type="text" id="owner-name" class="w-full" placeholder="> name" style="margin-bottom:10px;" />
+            <input type="text" id="owner-web" class="w-full" placeholder="> location" style="margin-bottom:10px;" />
+            <textarea id="owner-bio" class="w-full" rows="2" placeholder="> status" style="margin-bottom:10px;"></textarea>
+            <div class="mt-2 space-y-2">
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input id="owner-avatar-file" type="file" accept="image/*" class="hidden" />
+                <label for="owner-avatar-file" class="btn-retro cursor-pointer text-center w-full sm:w-auto inline-block">
+                  CHANGE_AVATAR
+                </label>
+                <button id="save-profile" class="btn-retro w-full sm:w-auto">SAVE_PROFILE</button>
+              </div>
+              <div id="avatar-filename" style="font-size:9px; opacity:0.6; font-style:italic; color: var(--horror-text);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="inbox-list" class="mt-4 space-y-3 max-h-[420px] overflow-auto" style="padding: 8px;"></div>
+    `;
+
+      qsel('#refresh-inbox').addEventListener('click', renderInboxItems);
+      qsel('#download-all').addEventListener('click', downloadAllDrawings);
+
+      // profile wiring - load from server
+      const ownerAvatarEl = qsel('#owner-avatar');
+
+      // Load profile from server
+      if (SERVER_URL) {
+        fetch(SERVER_URL + '/api/profile')
+          .then(r => r.json())
+          .then(profile => {
+            if (profile) {
+              qsel('#owner-name').value = profile.name || '';
+              qsel('#owner-web').value = profile.web || '';
+              qsel('#owner-bio').value = profile.bio || '';
+              ownerAvatarEl.src = profile.avatar || qsel('#profile-avatar').src;
+            }
+          })
+          .catch(err => console.warn('Could not load profile from server', err));
+      } else {
+        const profile = loadProfileLocal() || { name: 'Owner', web: '', bio: '', avatar: '' };
+        qsel('#owner-name').value = profile.name || '';
+        qsel('#owner-web').value = profile.web || '';
+        qsel('#owner-bio').value = profile.bio || '';
+        ownerAvatarEl.src = profile.avatar || qsel('#profile-avatar').src;
+      }
+
+      qsel('#owner-avatar-file').addEventListener('change', (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+
+        // Update filename display
+        const filenameDisplay = qsel('#avatar-filename');
+        filenameDisplay.textContent = `Archivo seleccionado: ${f.name}`;
+
+        // Load and display image
+        const reader = new FileReader();
+        reader.onload = () => { ownerAvatarEl.src = reader.result; };
+        reader.readAsDataURL(f);
+      });
+      qsel('#save-profile').addEventListener('click', async () => {
+        const p = { name: qsel('#owner-name').value, web: qsel('#owner-web').value, bio: qsel('#owner-bio').value, avatar: ownerAvatarEl.src };
+        if (SERVER_URL) {
+          try {
+            const res = await fetch(SERVER_URL + '/api/profile', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-owner-token': getStoredOwnerToken()
+              },
+              body: JSON.stringify(p)
+            });
+            if (!res.ok) throw new Error('err');
+            showRetroAlert('✓ PROFILE_DATA_SAVED ✓', 'success');
+          }
+          catch (err) { showRetroAlert('✗ SAVE_ERROR // CONNECTION_LOST ✗', 'error'); saveProfileLocal(p); }
+        } else { saveProfileLocal(p); showRetroAlert('✓ PROFILE_DATA_SAVED ✓', 'success'); }
+        // reflect in sidebar
+        qsel('#profile-name').textContent = p.name; qsel('#profile-bio').textContent = p.bio;
+        const webLink = qsel('#profile-web');
+        webLink.textContent = p.web || 'mipagina.oldschool';
+        webLink.href = p.web || '#';
+        if (p.web && !p.web.startsWith('http')) webLink.href = 'https://' + p.web;
+        qsel('#profile-avatar').src = p.avatar;
+      });
+
+      // storage event & polling
+      window.addEventListener('storage', (e) => { if (e.key === 'retro_notify') { renderInboxItems(); } });
+      startPolling(renderInboxItems);
+      renderInboxItems();
+    }
+
+    // render inbox items (from server or local)
+    async function renderInboxItems() {
+      const list = qsel('#inbox-list');
+      let arr = [];
+      if (SERVER_URL) {
+        try { const res = await fetch(SERVER_URL + '/api/messages', { headers: { 'x-owner-token': getStoredOwnerToken() } }); if (res.ok) { arr = await res.json(); } else { throw new Error('no'); } }
+        catch (err) { console.warn('Error fetching from server, fallback to local'); arr = loadInboxLocal(); }
+      } else {
+        arr = loadInboxLocal();
+      }
+      arr = arr.sort((a, b) => b.ts - a.ts);
+      if (arr.length === 0) {
+        list.innerHTML = '<div class="p-4 message-box" style="font-size:13px; text-align:center; color: var(--horror-text);">⚠ NO TRANSMISSIONS DETECTED ⚠</div>';
+        return;
+      }
+      list.innerHTML = '';
+      for (const it of arr) {
+        const el = document.createElement('div');
+        el.className = 'p-4 message-box flex gap-3 items-start';
+        el.style.cssText = 'background: var(--horror-gray); border: 1px solid var(--horror-blood); position: relative;';
+        const drawingUrl = it.drawingUrl || it.drawing; // support both server (drawingUrl) and local (drawing)
+        const fullDrawingUrl = drawingUrl && SERVER_URL && !drawingUrl.startsWith('data:') ? SERVER_URL + drawingUrl : drawingUrl;
+        el.innerHTML = `
+        <div class="w-2/3" style="font-size:12px; padding-left: 8px;">
+          <div class="font-semibold" style="margin-bottom:6px; color: var(--horror-red); letter-spacing: 1px; text-shadow: 0 0 10px var(--horror-glow);">⚠ TRANSMISSION_${it.id.toUpperCase().slice(0, 6)} · ${new Date(it.ts).toLocaleString()}</div>
+          <div class="mt-1 break-words" style="color: var(--horror-text); line-height: 1.6; padding-left: 4px;">${it.text ? escapeHtml(it.text) : '<i style="opacity:0.6; color: var(--horror-blood);">[NO_TEXT_DATA]</i>'}</div>
+        </div>
+        <div class="w-1/3 flex flex-col items-end gap-2">
+          ${fullDrawingUrl ? `<div class="flex justify-end"><img src="${fullDrawingUrl}" style="max-width:140px; border: 2px solid var(--horror-red); border-radius: 0; box-shadow: 0 0 15px var(--horror-shadow); filter: grayscale(0.3) contrast(1.2);" /></div>` : ''}
+          <button class="btn-retro mark-read" data-id="${it.id}">${it.read ? '✓ READ' : '○ MARK_READ'}</button>
+          ${fullDrawingUrl ? `<a class="btn-retro" href="${fullDrawingUrl}" download="transmission_${it.id}.png" style="text-decoration:none;">⬇ SAVE</a>` : ''}
+        </div>
+      `;
+        list.appendChild(el);
+      }
+
+      qselAll('.mark-read').forEach(btn => btn.addEventListener('click', (e) => { const id = e.currentTarget.dataset.id; markRead(id); }));
+    }
+
+    function markRead(id) {
+      if (SERVER_URL) {
+        fetch(SERVER_URL + '/api/messages/' + id + '/read', {
+          method: 'POST',
+          headers: { 'x-owner-token': getStoredOwnerToken() }
+        })
+          .then(() => renderInboxItems())
+          .catch(() => {
+            // fallback local
+            const arr = loadInboxLocal();
+            const idx = arr.findIndex(x => x.id === id);
+            if (idx >= 0) {
+              arr[idx].read = true;
+              saveInboxLocal(arr);
+              renderInboxItems();
+            }
+          });
+      } else {
+        const arr = loadInboxLocal();
+        const idx = arr.findIndex(x => x.id === id);
+        if (idx >= 0) {
+          arr[idx].read = true;
+          saveInboxLocal(arr);
+          renderInboxItems();
+        }
+      }
+    }
+
+    function downloadAllDrawings() {
+      const arr = (SERVER_URL ? [] : loadInboxLocal()).filter(x => x.drawing); if (SERVER_URL) { // try fetch list with drawings URLs
+        fetch(SERVER_URL + '/api/messages').then(r => r.json()).then(data => { data.filter(x => x.drawingUrl).forEach(it => { const a = document.createElement('a'); a.href = SERVER_URL + it.drawingUrl; a.download = 'transmission_' + it.id + '.png'; document.body.appendChild(a); a.click(); a.remove(); }); }).catch(() => showRetroAlert('✗ DOWNLOAD_FAILED // NO_CONNECTION ✗', 'error'));
+      }
+      else { if (arr.length === 0) { showRetroAlert('⚠ NO_DRAWINGS_AVAILABLE ⚠', 'info'); return; } arr.forEach((it) => { const a = document.createElement('a'); a.href = it.drawing; a.download = `transmission_${it.id}.png`; document.body.appendChild(a); a.click(); a.remove(); }); }
+    }
+
+    // polling util - optimizado
+    let pollHandle = null;
+    function startPolling(cb) { if (pollHandle) clearInterval(pollHandle); pollHandle = setInterval(() => { cb(); }, 10000); } // Aumentado de 4s a 10s
+
+    // helper to escape HTML in messages
+    function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, "&#39;"); }
+
+    // dataURL -> Blob
+    function dataURLtoBlob(dataurl) { const arr = dataurl.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) { u8arr[n] = bstr.charCodeAt(n); } return new Blob([u8arr], { type: mime }); }
+
+    // --- initial wiring: set sidebar profile from saved profile ---
+    (async function initSidebarProfile() {
+      let p = null;
+
+      // Try to load from server first
+      if (SERVER_URL) {
+        try {
+          const res = await fetch(SERVER_URL + '/api/profile');
+          if (res.ok) {
+            p = await res.json();
+          }
+        } catch (err) {
+          console.warn('Could not load profile from server, using local fallback', err);
+        }
+      }
+
+      // Fallback to local storage
+      if (!p) p = loadProfileLocal();
+
+      // Update sidebar with profile data
+      if (p) {
+        qsel('#profile-name').textContent = p.name || qsel('#profile-name').textContent;
+        qsel('#profile-bio').textContent = p.bio || qsel('#profile-bio').textContent;
+        const webLink = qsel('#profile-web');
+        webLink.textContent = p.web || webLink.textContent;
+        webLink.href = p.web || '#';
+        if (p.web && !p.web.startsWith('http')) webLink.href = 'https://' + p.web;
+        if (p.avatar) qsel('#profile-avatar').src = p.avatar;
+      }
+    })();
+
+    // initial render
+    render();
+
+  </script>
+</body>
+
+</html>

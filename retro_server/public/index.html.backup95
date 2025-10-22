@@ -1,0 +1,997 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>InboxPaint · Mensajes Anónimos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Windows 95 Authentic Style */
+    :root{
+      --win95-gray:#c0c0c0;
+      --win95-dark-gray:#808080;
+      --win95-light-gray:#dfdfdf;
+      --win95-blue:#000080;
+      --win95-teal:#008080;
+      --win95-white:#ffffff;
+      --win95-black:#000000;
+      --win95-highlight:#000080;
+    }
+    body{
+      font-family: 'MS Sans Serif', 'Microsoft Sans Serif', Arial, sans-serif; 
+      background:#008080; 
+      background-image: 
+        repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px);
+    } 
+    .retro-panel{
+      background:var(--win95-gray); 
+      border-top: 2px solid var(--win95-white);
+      border-left: 2px solid var(--win95-white);
+      border-right: 2px solid var(--win95-black);
+      border-bottom: 2px solid var(--win95-black);
+      box-shadow: inset 1px 1px 0 var(--win95-light-gray), inset -1px -1px 0 var(--win95-dark-gray);
+    } 
+    .btn-retro{
+      background:var(--win95-gray); 
+      border-top: 2px solid var(--win95-white);
+      border-left: 2px solid var(--win95-white);
+      border-right: 2px solid var(--win95-black);
+      border-bottom: 2px solid var(--win95-black);
+      padding:.25rem .5rem; 
+      font-weight:400; 
+      font-size:11px;
+      box-shadow: inset 1px 1px 0 var(--win95-light-gray), inset -1px -1px 0 var(--win95-dark-gray);
+      cursor: pointer;
+    } 
+    .btn-retro:hover{
+      background:#d4d4d4;
+    }
+    .btn-retro:active{
+      border-top: 2px solid var(--win95-black);
+      border-left: 2px solid var(--win95-black);
+      border-right: 2px solid var(--win95-white);
+      border-bottom: 2px solid var(--win95-white);
+      box-shadow: inset -1px -1px 0 var(--win95-light-gray), inset 1px 1px 0 var(--win95-dark-gray);
+      padding-left: calc(.5rem + 1px);
+      padding-top: calc(.25rem + 1px);
+    }
+    label.btn-retro{display: inline-block; user-select: none;}
+    .window-title{
+      background:var(--win95-blue); 
+      background: linear-gradient(90deg, #000080, #1084d0);
+      color:white; 
+      padding:.25rem .5rem; 
+      font-weight:700; 
+      font-size:11px;
+      display:flex; 
+      align-items:center; 
+      gap:.5rem;
+    }
+    .title-dot{
+      width:14px; 
+      height:14px; 
+      background:var(--win95-gray);
+      border-top: 1px solid var(--win95-white);
+      border-left: 1px solid var(--win95-white);
+      border-right: 1px solid var(--win95-black);
+      border-bottom: 1px solid var(--win95-black);
+    } 
+    .divider-retro{
+      height:2px; 
+      border-top: 1px solid var(--win95-dark-gray);
+      border-bottom: 1px solid var(--win95-white);
+      margin:0.5rem 0;
+    } 
+    .avatar{
+      width:96px;
+      height:96px;
+      border-top: 2px solid var(--win95-dark-gray);
+      border-left: 2px solid var(--win95-dark-gray);
+      border-right: 2px solid var(--win95-white);
+      border-bottom: 2px solid var(--win95-white);
+      object-fit:cover;
+    }
+    
+    /* Input fields Windows 95 style */
+    input[type="text"], 
+    input[type="color"],
+    textarea, 
+    #draw-canvas {
+      background: white;
+      border-top: 2px solid var(--win95-dark-gray);
+      border-left: 2px solid var(--win95-dark-gray);
+      border-right: 2px solid var(--win95-white);
+      border-bottom: 2px solid var(--win95-white);
+      box-shadow: inset -1px -1px 0 var(--win95-light-gray), inset 1px 1px 0 var(--win95-black);
+      font-family: 'MS Sans Serif', 'Microsoft Sans Serif', Arial, sans-serif;
+      font-size: 11px;
+      padding: 2px 4px;
+    }
+    
+    input[type="range"] {
+      -webkit-appearance: none;
+      height: 20px;
+      background: var(--win95-gray);
+      border-top: 1px solid var(--win95-dark-gray);
+      border-left: 1px solid var(--win95-dark-gray);
+      border-right: 1px solid var(--win95-white);
+      border-bottom: 1px solid var(--win95-white);
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 20px;
+      background: var(--win95-gray);
+      border-top: 2px solid var(--win95-white);
+      border-left: 2px solid var(--win95-white);
+      border-right: 2px solid var(--win95-black);
+      border-bottom: 2px solid var(--win95-black);
+      cursor: pointer;
+    }
+    
+    /* Message boxes style */
+    .message-box {
+      background: var(--win95-gray);
+      border-top: 2px solid var(--win95-white);
+      border-left: 2px solid var(--win95-white);
+      border-right: 2px solid var(--win95-black);
+      border-bottom: 2px solid var(--win95-black);
+    }
+    
+    /* Windows 95 scrollbar (WebKit only) */
+    ::-webkit-scrollbar {
+      width: 16px;
+      height: 16px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--win95-gray);
+      border-top: 1px solid var(--win95-white);
+      border-left: 1px solid var(--win95-white);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--win95-gray);
+      border-top: 2px solid var(--win95-white);
+      border-left: 2px solid var(--win95-white);
+      border-right: 2px solid var(--win95-black);
+      border-bottom: 2px solid var(--win95-black);
+    }
+    ::-webkit-scrollbar-corner {
+      background: var(--win95-gray);
+    }
+    
+    /* Link colors */
+    a {
+      color: #0000EE;
+      text-decoration: underline;
+    }
+    a:visited {
+      color: #551A8B;
+    }
+    
+    /* General text sizing */
+    body, input, textarea, button, select {
+      font-size: 11px;
+    }
+    
+    /* Mobile Responsive Styles */
+    @media (max-width:768px){ 
+      body { padding: 0.75rem; }
+      .desktop-grid{grid-template-columns:1fr;}
+      .window-title { 
+        padding: 0.4rem 0.5rem; 
+        font-size: 0.9rem;
+        flex-wrap: wrap;
+      }
+      .window-title .ml-auto { 
+        margin-left: 0; 
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.75rem;
+      }
+      .retro-panel { 
+        padding: 0.75rem !important; 
+        border-width: 3px;
+      }
+      .avatar { 
+        width: 64px; 
+        height: 64px; 
+        border-width: 2px;
+      }
+      .btn-retro { 
+        padding: 0.3rem 0.5rem; 
+        font-size: 0.85rem;
+      }
+      .retro-modal {
+        min-width: 90%;
+        max-width: 90%;
+      }
+      .retro-modal-body {
+        padding: 1rem;
+        flex-direction: column;
+        text-align: center;
+      }
+      .retro-modal-icon {
+        font-size: 2rem;
+      }
+      /* Canvas adjustments */
+      #draw-canvas {
+        max-width: 100%;
+        height: auto;
+        touch-action: none; /* Better touch handling */
+      }
+      /* Form adjustments */
+      textarea, input[type="text"] {
+        font-size: 16px !important; /* Prevent zoom on iOS */
+      }
+      /* Drawing controls on mobile */
+      #brush-size {
+        width: 80px;
+      }
+      /* Stack inbox messages vertically on mobile */
+      .flex.gap-3.items-start {
+        flex-direction: column !important;
+        gap: 1rem !important;
+      }
+      .flex.gap-3.items-start > div {
+        width: 100% !important;
+      }
+      .flex.flex-col.items-end {
+        align-items: flex-start !important;
+      }
+      .flex.justify-end {
+        justify-content: flex-start !important;
+      }
+      /* Show sidebar first on mobile (profile at top) */
+      aside.col-span-1 {
+        order: 1;
+      }
+      main.col-span-1 {
+        order: 2;
+      }
+      /* Owner profile form adjustments for mobile */
+      #owner-avatar {
+        width: 80px !important;
+        height: 80px !important;
+      }
+      .flex.gap-3.items-center.mt-2 {
+        flex-direction: column !important;
+      }
+      .flex.gap-3.items-center.mt-2 img {
+        margin: 0 auto;
+      }
+      .flex.gap-3.items-center.mt-2 .flex-1 {
+        width: 100%;
+      }
+      /* Ensure inputs don't overflow */
+      input[type="text"], 
+      textarea {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      /* Owner panel header adjustments */
+      .flex.justify-between.items-start {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+    
+    @media (max-width:480px){
+      body { padding: 0.5rem; }
+      .window-title { font-size: 0.8rem; padding: 0.3rem 0.4rem; }
+      .title-dot { width: 8px; height: 8px; }
+      .avatar { width: 48px; height: 48px; }
+      #owner-avatar { width: 64px !important; height: 64px !important; }
+      .btn-retro { font-size: 0.75rem; padding: 0.25rem 0.4rem; }
+      h2, h3 { font-size: 1.1rem !important; }
+      h4 { font-size: 0.95rem !important; }
+      .text-sm { font-size: 0.8rem; }
+      .text-xs { font-size: 0.7rem; }
+      /* Stack buttons vertically on very small screens */
+      .flex.flex-wrap.gap-2 {
+        flex-direction: column;
+      }
+      .flex.flex-wrap.gap-2 button {
+        width: 100%;
+      }
+    }
+    
+    /* Windows 95 Alert/Modal */
+    .retro-modal-overlay{
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.2s ease;
+    }
+    .retro-modal{
+      background: var(--win95-gray);
+      border-top: 3px solid var(--win95-white);
+      border-left: 3px solid var(--win95-white);
+      border-right: 3px solid var(--win95-black);
+      border-bottom: 3px solid var(--win95-black);
+      box-shadow: inset 1px 1px 0 var(--win95-light-gray), inset -1px -1px 0 var(--win95-dark-gray);
+      min-width: 320px;
+      max-width: 480px;
+      animation: slideDown 0.3s ease;
+    }
+    .retro-modal-title{
+      background: var(--win95-blue);
+      background: linear-gradient(90deg, #000080, #1084d0);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      font-weight: 700;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .retro-modal-body{
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--win95-gray);
+    }
+    .retro-modal-icon{
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+    .retro-modal-text{
+      flex: 1;
+      font-size: 11px;
+      color: var(--win95-black);
+    }
+    .retro-modal-footer{
+      padding: 0.75rem;
+      display: flex;
+      justify-content: center;
+      background: var(--win95-gray);
+      border-top: 2px solid var(--win95-dark-gray);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideDown {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="p-6">
+  <div id="retro-modal-container"></div>
+  <div class="max-w-6xl mx-auto">
+    <div class="window-title mb-4">
+      <div class="title-dot"></div>
+      <div>InboxPaint 95</div>
+      <div class="ml-auto" style="font-size:11px; opacity:0.9;">Mensajes anónimos y dibujos</div>
+    </div>
+
+    <div class="grid desktop-grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Perfil izquierdo -->
+      <aside class="col-span-1 md:col-span-1 retro-panel p-4">
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-3">
+          <img id="profile-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><rect width='100%' height='100%' fill='%23c0c0c0'/><text x='50%' y='55%' font-size='16' dominant-baseline='middle' text-anchor='middle' fill='%23000000'>AV</text></svg>" alt="avatar" class="avatar" />
+          <div class="text-center sm:text-left">
+            <h3 class="font-bold" style="font-size:13px;" id="profile-name">Alex Retro</h3>
+            <p style="font-size:11px;" id="profile-bio">Fan de los foros, gifs animados y fondos con textura.</p>
+          </div>
+        </div>
+        <div class="divider-retro"></div>
+        <ul style="font-size:11px;" class="space-y-2">
+          <li><strong>Web:</strong> <a href="#" id="profile-web" class="underline" style="color:#0000EE;">mipagina.oldschool</a></li>
+        </ul>
+      </aside>
+
+      <!-- Centro: anon form / owner inbox -->
+      <main class="col-span-1 md:col-span-2">
+        <div id="view-root" class="retro-panel p-4">
+          <!-- dynamic content inserted here -->
+        </div>
+      </main>
+    </div>
+
+    <footer class="mt-4 text-center" style="font-size:11px; color:#000000; opacity:0.7;">InboxPaint 95 © 1995</footer>
+  </div>
+
+  <script>
+  /* ========= CONFIG =========
+     - Para usar un backend, asigna la URL del servidor a SERVER_URL (ej: 'http://localhost:3000')
+     - Si SERVER_URL está vacío (''), se usa localStorage como fallback.
+     - OWNER token: no hay UI para cambiarlo (seguridad). Debes acceder con ?owner=TU_TOKEN.
+  */
+  const SERVER_URL = 'http://localhost:3000'; // EJ: 'http://localhost:3000'  <-- poner aquí la URL del servidor si quieres backend
+  const DEFAULT_OWNER_TOKEN = 'owner123';
+  const OWNER_TOKEN_KEY = 'retro_owner_token'; // sigue permitiendo lectura local para fallback privado
+  const STORAGE_KEY = 'retro_inbox';
+  const PROFILE_KEY = 'retro_profile';
+
+  // util
+  function qsel(s){return document.querySelector(s)}
+  function qselAll(s){return Array.from(document.querySelectorAll(s));}
+  function getUrlParam(name){ const u = new URL(location.href); return u.searchParams.get(name); }
+
+  // Retro Modal/Alert System
+  function showRetroAlert(message, type = 'info') {
+    const icons = {
+      info: 'ℹ️',
+      success: '✅',
+      warning: '⚠️',
+      error: '❌'
+    };
+    
+    const titles = {
+      info: 'Información',
+      success: 'Éxito',
+      warning: 'Advertencia',
+      error: 'Error'
+    };
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'retro-modal-overlay';
+    overlay.innerHTML = `
+      <div class="retro-modal">
+        <div class="retro-modal-title">
+          <div class="title-dot"></div>
+          <span>${titles[type]}</span>
+        </div>
+        <div class="retro-modal-body">
+          <div class="retro-modal-icon">${icons[type]}</div>
+          <div class="retro-modal-text">${message}</div>
+        </div>
+        <div class="retro-modal-footer">
+          <button class="btn-retro" onclick="this.closest('.retro-modal-overlay').remove()">Aceptar</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+    
+    // Close on Escape key
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', handleEscape);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+  }
+
+  // token handling (no UI to change) - still stored locally for fallback if you set owner token beforehand in localStorage
+  function getStoredOwnerToken(){ return localStorage.getItem(OWNER_TOKEN_KEY) || DEFAULT_OWNER_TOKEN; }
+  function setStoredOwnerTokenForSetupOnly(t){ localStorage.setItem(OWNER_TOKEN_KEY, t); }
+
+  // storage helpers (local fallback)
+  function loadInboxLocal(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){ return []; } }
+  function saveInboxLocal(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+  function pushItemLocal(item){ const arr = loadInboxLocal(); arr.push(item); saveInboxLocal(arr); }
+
+  // profile helpers
+  function loadProfileLocal(){ try{ return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); }catch(e){ return null; } }
+  function saveProfileLocal(p){ localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }
+
+  // id
+  function newid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+  // owner check
+  function isOwner(){ const token = getUrlParam('owner'); return token === 'owner123'; }
+
+  // ========== RENDER ==========
+  function render(){ const root = qsel('#view-root'); root.innerHTML = ''; if(isOwner()) renderOwnerView(root); else renderAnonView(root); }
+
+  /* ------------------ Anonymous view ------------------ */
+  function renderAnonView(root){
+    root.innerHTML = `
+      <h2 class="font-bold" style="font-size:13px; margin-bottom:8px;">Enviar mensaje anónimo</h2>
+      <p style="font-size:11px; margin-bottom:8px;">Tu mensaje llegará al owner</p>
+      <input id="nickInput" type="text" maxlength="20"
+         placeholder="Tu nick (opcional)" 
+         class="w-full" style="margin-bottom:8px;" />
+      <div class="mt-3">
+        <textarea id="anon-text" rows="4" class="w-full" placeholder="Escribe tu mensaje anónimo..."></textarea>
+      </div>
+      <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div>
+          <h4 class="font-semibold" style="font-size:11px; margin-bottom:4px;">Dibujo (opcional)</h4>
+          <canvas id="draw-canvas" width="400" height="200" class="bg-white w-full" style="max-width: 100%; height: auto;"></canvas>
+          <div class="mt-2 space-y-2">
+            <div class="flex gap-2 items-center flex-wrap" style="font-size:11px;">
+              <label class="flex items-center gap-1">
+                <span>Color:</span>
+                <input id="brush-color" type="color" value="#000080" class="w-8 h-6 cursor-pointer" />
+              </label>
+              <label class="flex items-center gap-1">
+                <span>Tamaño:</span>
+                <input id="brush-size" type="range" min="1" max="20" value="3" class="w-16" />
+                <span id="brush-size-value" class="w-4">3</span>px
+              </label>
+              <button id="undo-stroke" class="btn-retro">↩️ Deshacer</button>
+              <button id="clear-canvas" class="btn-retro">🗑️ Borrar</button>
+            </div>
+            <div class="flex gap-2">
+              <button id="save-drawing" class="btn-retro">📎 Adjuntar dibujo</button>
+            </div>
+          </div>
+          <p id="drawing-hint" style="font-size:11px; margin-top:4px; opacity:0.8;">Dibuja con mouse/touch.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold" style="font-size:11px; margin-bottom:4px;">Enviar</h4>
+          <div id="attachment-list" class="p-2 message-box min-h-[120px]" style="font-size:11px;"></div>
+          <div class="mt-2">
+            <button id="send-msg" class="btn-retro">Enviar anónimo</button>
+          </div>
+        </div>
+      </div>
+      <div class="divider-retro mt-3"></div>
+    `;
+
+    // drawing logic with undo, color picker, and brush size
+    const canvas = qsel('#draw-canvas'); 
+    const ctx = canvas.getContext('2d'); 
+    let drawing = false;
+    let strokes = []; // Array to store each stroke for undo functionality
+    let currentStroke = [];
+    
+    // Initial brush settings
+    ctx.lineWidth = 3; 
+    ctx.lineCap = 'round'; 
+    ctx.strokeStyle = '#000080';
+    
+    // Clear canvas with white background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    function getPos(e){ 
+      const rect = canvas.getBoundingClientRect(); 
+      const touch = e.touches && e.touches[0]; 
+      const clientX = touch ? touch.clientX : e.clientX; 
+      const clientY = touch ? touch.clientY : e.clientY; 
+      
+      // Calculate scale factor between canvas resolution and display size
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      
+      return {
+        x: (clientX - rect.left) * scaleX, 
+        y: (clientY - rect.top) * scaleY
+      }; 
+    }
+
+    function startDrawing(e) {
+      drawing = true;
+      currentStroke = [];
+      const p = getPos(e);
+      currentStroke.push({
+        x: p.x, 
+        y: p.y, 
+        color: ctx.strokeStyle, 
+        lineWidth: ctx.lineWidth,
+        isStart: true
+      });
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    }
+
+    function draw(e) {
+      if (!drawing) return;
+      const p = getPos(e);
+      currentStroke.push({
+        x: p.x, 
+        y: p.y, 
+        color: ctx.strokeStyle, 
+        lineWidth: ctx.lineWidth
+      });
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+
+    function stopDrawing() {
+      if (drawing) {
+        drawing = false;
+        ctx.closePath();
+        if (currentStroke.length > 0) {
+          strokes.push([...currentStroke]);
+          currentStroke = [];
+        }
+      }
+    }
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, {passive: false});
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, {passive: false});
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+    canvas.addEventListener('touchend', stopDrawing);
+
+    // Brush color change
+    qsel('#brush-color').addEventListener('input', (e) => {
+      ctx.strokeStyle = e.target.value;
+    });
+
+    // Brush size change
+    qsel('#brush-size').addEventListener('input', (e) => {
+      ctx.lineWidth = e.target.value;
+      qsel('#brush-size-value').textContent = e.target.value;
+    });
+
+    // Undo last stroke
+    qsel('#undo-stroke').addEventListener('click', () => {
+      if (strokes.length === 0) return;
+      strokes.pop();
+      redrawCanvas();
+    });
+
+    function redrawCanvas() {
+      // Clear canvas
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Redraw all strokes
+      strokes.forEach(stroke => {
+        if (stroke.length === 0) return;
+        ctx.strokeStyle = stroke[0].color;
+        ctx.lineWidth = stroke[0].lineWidth;
+        ctx.beginPath();
+        stroke.forEach((point, idx) => {
+          if (point.isStart || idx === 0) {
+            ctx.moveTo(point.x, point.y);
+          } else {
+            ctx.lineTo(point.x, point.y);
+          }
+        });
+        ctx.stroke();
+        ctx.closePath();
+      });
+    }
+
+    qsel('#clear-canvas').addEventListener('click', () => { 
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      strokes = [];
+      currentStroke = [];
+      qsel('#attachment-list').innerHTML = ''; 
+      currentAttachment = null; 
+    });
+
+    let currentAttachment = null; // dataURL or File object
+    
+    // Function to check if canvas is empty
+    function isCanvasEmpty() {
+      return strokes.length === 0;
+    }
+    
+    qsel('#save-drawing').addEventListener('click', ()=>{
+      // Check if canvas is empty
+      if (isCanvasEmpty()) {
+        showRetroAlert('Crea un dibujo antes de adjuntarlo.', 'warning');
+        return;
+      }
+      
+      const data = canvas.toDataURL('image/png'); 
+      currentAttachment = data; 
+      qsel('#attachment-list').innerHTML = `<div style="font-size:11px;">✅ Dibujo adjuntado. <button id="remove-att" class="ml-2 btn-retro">Quitar</button></div>`;
+      qsel('#remove-att').addEventListener('click', ()=>{ 
+        currentAttachment=null; 
+        qsel('#attachment-list').innerHTML=''; 
+      });
+    });
+
+    qsel('#send-msg').addEventListener('click', async ()=>{
+  const text = qsel('#anon-text').value.trim();
+  const nick = qsel('#nickInput').value.trim() || 'Anónimo';
+  if(!text && !currentAttachment){
+    showRetroAlert('Escribe un mensaje o adjunta un dibujo.', 'warning');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('text', `[${nick}]: ${text}`);
+  
+  if(currentAttachment && currentAttachment.startsWith('data:')) {
+    const blob = dataURLtoBlob(currentAttachment);
+    formData.append('drawing', blob, `${Date.now()}.png`);
+  }
+
+  try {
+    const res = await fetch(SERVER_URL + '/api/messages', { method:'POST', body: formData });
+    if(!res.ok) throw new Error('Falló el envío');
+    showRetroAlert('¡Tu mensaje ha sido enviado!', 'success');
+  } catch (err) {
+    console.error(err);
+    showRetroAlert('No se pudo enviar el mensaje. Intenta de nuevo.', 'error');
+  }
+
+  qsel('#anon-text').value = '';
+  qsel('#attachment-list').innerHTML = '';
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  currentAttachment = null;
+});
+  }
+
+  /* ------------------ Owner view ------------------ */
+  function renderOwnerView(root){
+    root.innerHTML = `
+      <div class="flex justify-between items-start gap-4">
+        <div>
+          <h2 class="font-bold" style="font-size:13px; margin-bottom:8px;">Panel de administración</h2>
+          <p style="font-size:11px;">Aquí verás todos los mensajes y dibujos que te envíen.</p>
+        </div>
+      </div>
+
+      <div class="mt-3 flex flex-wrap gap-2">
+        <button id="refresh-inbox" class="btn-retro">Refrescar</button>
+        <button id="download-all" class="btn-retro">Descargar todos los dibujos</button>
+      </div>
+
+      <div class="mt-4 retro-panel p-3">
+        <h3 class="font-semibold" style="font-size:11px; margin-bottom:8px;">Tu perfil público</h3>
+        <div class="flex flex-col sm:flex-row gap-3 items-center sm:items-start mt-2">
+          <img id="owner-avatar" src="" alt="avatar" class="avatar" />
+          <div class="flex-1 w-full">
+            <input id="owner-name" class="w-full" placeholder="Tu nombre" style="margin-bottom:4px;" />
+            <input id="owner-web" class="w-full" placeholder="Tu sitio web" style="margin-bottom:4px;" />
+            <textarea id="owner-bio" class="w-full" rows="2" placeholder="Sobre ti" style="margin-bottom:4px;"></textarea>
+            <div class="mt-2 space-y-2">
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input id="owner-avatar-file" type="file" accept="image/*" class="hidden" />
+                <label for="owner-avatar-file" class="btn-retro cursor-pointer text-center w-full sm:w-auto inline-block">
+                  📷 Cambiar avatar
+                </label>
+                <button id="save-profile" class="btn-retro w-full sm:w-auto">💾 Guardar cambios</button>
+              </div>
+              <div id="avatar-filename" style="font-size:11px; opacity:0.7; font-style:italic;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="inbox-list" class="mt-3 space-y-2 max-h-[420px] overflow-auto"></div>
+    `;
+
+    qsel('#refresh-inbox').addEventListener('click', renderInboxItems);
+    qsel('#download-all').addEventListener('click', downloadAllDrawings);
+    
+    // profile wiring - load from server
+    const ownerAvatarEl = qsel('#owner-avatar');
+    
+    // Load profile from server
+    if(SERVER_URL){
+      fetch(SERVER_URL + '/api/profile')
+        .then(r => r.json())
+        .then(profile => {
+          if(profile){
+            qsel('#owner-name').value = profile.name || '';
+            qsel('#owner-web').value = profile.web || '';
+            qsel('#owner-bio').value = profile.bio || '';
+            ownerAvatarEl.src = profile.avatar || qsel('#profile-avatar').src;
+          }
+        })
+        .catch(err => console.warn('Could not load profile from server', err));
+    } else {
+      const profile = loadProfileLocal() || { name: 'Owner', web:'', bio:'', avatar: '' };
+      qsel('#owner-name').value = profile.name || '';
+      qsel('#owner-web').value = profile.web || '';
+      qsel('#owner-bio').value = profile.bio || '';
+      ownerAvatarEl.src = profile.avatar || qsel('#profile-avatar').src;
+    }
+
+    qsel('#owner-avatar-file').addEventListener('change', (e)=>{
+      const f = e.target.files[0]; 
+      if(!f) return; 
+      
+      // Update filename display
+      const filenameDisplay = qsel('#avatar-filename');
+      filenameDisplay.textContent = `Archivo seleccionado: ${f.name}`;
+      
+      // Load and display image
+      const reader = new FileReader(); 
+      reader.onload = ()=>{ ownerAvatarEl.src = reader.result; }; 
+      reader.readAsDataURL(f);
+    });
+    qsel('#save-profile').addEventListener('click', async ()=>{
+      const p = { name:qsel('#owner-name').value, web:qsel('#owner-web').value, bio:qsel('#owner-bio').value, avatar: ownerAvatarEl.src };
+      if(SERVER_URL){
+        try{ 
+          const res = await fetch(SERVER_URL + '/api/profile', { 
+            method:'POST', 
+            headers:{
+              'Content-Type':'application/json',
+              'x-owner-token': getStoredOwnerToken()
+            }, 
+            body: JSON.stringify(p)
+          }); 
+          if(!res.ok) throw new Error('err'); 
+          showRetroAlert('Perfil actualizado correctamente.', 'success'); 
+        }
+        catch(err){ showRetroAlert('No se pudo guardar el perfil. Intenta de nuevo.', 'error'); saveProfileLocal(p); }
+      } else { saveProfileLocal(p); showRetroAlert('Perfil actualizado correctamente.', 'success'); }
+      // reflect in sidebar
+      qsel('#profile-name').textContent = p.name; qsel('#profile-bio').textContent = p.bio; 
+      const webLink = qsel('#profile-web');
+      webLink.textContent = p.web || 'mipagina.oldschool'; 
+      webLink.href = p.web || '#';
+      if(p.web && !p.web.startsWith('http')) webLink.href = 'https://' + p.web;
+      qsel('#profile-avatar').src = p.avatar;
+    });
+
+    // storage event & polling
+    window.addEventListener('storage', (e)=>{ if(e.key==='retro_notify'){ renderInboxItems(); } });
+    startPolling(renderInboxItems);
+    renderInboxItems();
+  }
+
+  // render inbox items (from server or local)
+  async function renderInboxItems(){
+    const list = qsel('#inbox-list');
+    let arr = [];
+    if(SERVER_URL){
+      try{ const res = await fetch(SERVER_URL + '/api/messages', { headers: { 'x-owner-token': getStoredOwnerToken() } }); if(res.ok){ arr = await res.json(); } else { throw new Error('no'); } }
+      catch(err){ console.warn('Error fetching from server, fallback to local'); arr = loadInboxLocal(); }
+    } else {
+      arr = loadInboxLocal();
+    }
+    arr = arr.sort((a,b)=>b.ts - a.ts);
+    if(arr.length===0){ list.innerHTML = '<div class="p-4 message-box" style="font-size:11px;">No hay mensajes aún.</div>'; return; }
+    list.innerHTML = '';
+    for(const it of arr){
+      const el = document.createElement('div'); 
+      el.className='p-3 message-box flex gap-3 items-start';
+      el.style.backgroundColor = 'white';
+      const drawingUrl = it.drawingUrl || it.drawing; // support both server (drawingUrl) and local (drawing)
+      const fullDrawingUrl = drawingUrl && SERVER_URL && !drawingUrl.startsWith('data:') ? SERVER_URL + drawingUrl : drawingUrl;
+      el.innerHTML = `
+        <div class="w-2/3" style="font-size:11px;">
+          <div class="font-semibold" style="margin-bottom:4px;">Mensaje · ${new Date(it.ts).toLocaleString()}</div>
+          <div class="mt-1 break-words">${it.text? escapeHtml(it.text): '<i>(sin texto)</i>'}</div>
+        </div>
+        <div class="w-1/3 flex flex-col items-end gap-2">
+          ${fullDrawingUrl? `<div class="flex justify-end"><img src="${fullDrawingUrl}" style="max-width:140px; border-top: 1px solid var(--win95-dark-gray); border-left: 1px solid var(--win95-dark-gray); border-right: 1px solid var(--win95-white); border-bottom: 1px solid var(--win95-white);" /></div>` : ''}
+          <button class="btn-retro mark-read" data-id="${it.id}">${it.read? 'Leído':'Marcar leído'}</button>
+          ${fullDrawingUrl? `<a class="btn-retro" href="${fullDrawingUrl}" download="dibujo_${it.id}.png">Descargar</a>` : ''}
+        </div>
+      `;
+      list.appendChild(el);
+    }
+
+    qselAll('.mark-read').forEach(btn=> btn.addEventListener('click', (e)=>{ const id=e.currentTarget.dataset.id; markRead(id); }));
+  }
+
+  function markRead(id){ 
+    if(SERVER_URL){ 
+      fetch(SERVER_URL + '/api/messages/' + id + '/read', { 
+        method:'POST',
+        headers: { 'x-owner-token': getStoredOwnerToken() }
+      })
+      .then(()=> renderInboxItems())
+      .catch(()=> { 
+        // fallback local
+        const arr = loadInboxLocal(); 
+        const idx = arr.findIndex(x=>x.id===id); 
+        if(idx>=0){ 
+          arr[idx].read=true; 
+          saveInboxLocal(arr); 
+          renderInboxItems(); 
+        }
+      }); 
+    } else { 
+      const arr = loadInboxLocal(); 
+      const idx = arr.findIndex(x=>x.id===id); 
+      if(idx>=0){ 
+        arr[idx].read=true; 
+        saveInboxLocal(arr); 
+        renderInboxItems(); 
+      } 
+    } 
+  }
+
+  function downloadAllDrawings(){ const arr = (SERVER_URL? [] : loadInboxLocal()).filter(x=>x.drawing); if(SERVER_URL){ // try fetch list with drawings URLs
+      fetch(SERVER_URL + '/api/messages').then(r=>r.json()).then(data=>{ data.filter(x=>x.drawingUrl).forEach(it=>{ const a=document.createElement('a'); a.href = SERVER_URL + it.drawingUrl; a.download = 'dibujo_' + it.id + '.png'; document.body.appendChild(a); a.click(); a.remove(); }); }).catch(()=> showRetroAlert('No se pudieron descargar los dibujos.', 'error')); }
+    else { if(arr.length===0){ showRetroAlert('No hay dibujos disponibles.', 'info'); return; } arr.forEach((it)=>{ const a=document.createElement('a'); a.href=it.drawing; a.download=`dibujo_${it.id}.png`; document.body.appendChild(a); a.click(); a.remove(); }); } }
+
+  // polling util
+  let pollHandle = null;
+  function startPolling(cb){ if(pollHandle) clearInterval(pollHandle); pollHandle = setInterval(()=>{ cb(); }, 4000); }
+
+  // helper to escape HTML in messages
+  function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,"&#39;"); }
+
+  // dataURL -> Blob
+  function dataURLtoBlob(dataurl){ const arr = dataurl.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while(n--){ u8arr[n] = bstr.charCodeAt(n); } return new Blob([u8arr], {type:mime}); }
+
+  // --- initial wiring: set sidebar profile from saved profile ---
+  (async function initSidebarProfile(){ 
+    let p = null;
+    
+    // Try to load from server first
+    if(SERVER_URL){
+      try {
+        const res = await fetch(SERVER_URL + '/api/profile');
+        if(res.ok) {
+          p = await res.json();
+        }
+      } catch(err) {
+        console.warn('Could not load profile from server, using local fallback', err);
+      }
+    }
+    
+    // Fallback to local storage
+    if(!p) p = loadProfileLocal();
+    
+    // Update sidebar with profile data
+    if(p){ 
+      qsel('#profile-name').textContent = p.name || qsel('#profile-name').textContent; 
+      qsel('#profile-bio').textContent = p.bio || qsel('#profile-bio').textContent; 
+      const webLink = qsel('#profile-web');
+      webLink.textContent = p.web || webLink.textContent; 
+      webLink.href = p.web || '#';
+      if(p.web && !p.web.startsWith('http')) webLink.href = 'https://' + p.web;
+      if(p.avatar) qsel('#profile-avatar').src = p.avatar; 
+    } 
+  })();
+
+  // initial render
+  render();
+
+  /* =============== SUGERIDO: SERVIDOR SIMPLE (Node/Express) ===============
+
+  // server.js (ejemplo rápido - poner en tu servidor)
+  const example = `
+  // Requiere node 18+
+  import express from 'express';
+  import cors from 'cors';
+  import multer from 'multer';
+  import fs from 'fs';
+  import path from 'path';
+
+  const app = express(); app.use(cors()); app.use(express.json());
+  const upload = multer({ dest: './uploads' });
+
+  // simple 'db' en archivo JSON
+  const DB_FILE = './db.json';
+  function readDB(){ try{ return JSON.parse(fs.readFileSync(DB_FILE)); }catch(e){ return { messages: [], profile: null }; } }
+  function writeDB(db){ fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2)); }
+
+  app.post('/api/messages', upload.single('drawing'), (req, res)=>{
+    const db = readDB();
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    const item = { id, text: req.body.text || '', ts: Date.now(), read: false };
+    if(req.file){ // guardar ruta
+      const ext = path.extname(req.file.originalname) || '.png';
+      const dest = path.join('uploads', id + ext);
+      fs.renameSync(req.file.path, dest);
+      item.drawingUrl = '/' + dest;
+    }
+    db.messages.push(item); writeDB(db); res.json({ ok:true, id });
+  });
+
+  app.get('/api/messages', (req,res)=>{ const db = readDB(); res.json(db.messages); });
+  app.post('/api/messages/:id/read', (req,res)=>{ const db=readDB(); const it = db.messages.find(m=>m.id===req.params.id); if(it){ it.read=true; writeDB(db); res.json({ok:true}); } else res.status(404).end(); });
+  app.post('/api/profile', (req,res)=>{ const db=readDB(); db.profile = req.body; writeDB(db); res.json({ok:true}); });
+  app.get('/api/profile', (req,res)=>{ const db=readDB(); res.json(db.profile || null); });
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+  app.listen(3000, ()=> console.log('Server on 3000'));
+  `;
+
+  // NOTAS:
+  // - Este servidor guarda mensajes en db.json y ficheros subidos en /uploads. Es minimal y sin autenticación: en producción añade auth (JWT/sesiones) y HTTPS.
+  // - El cliente (este HTML) usa /api/messages para POST y GET. Para dibujo el cliente envía multipart/form-data con la imagen.
+  // - Para proteger el endpoint del owner podrías exigir un header x-owner-token o rutas protegidas; aquí simplificamos el ejemplo.
+
+  ===================================================================== */
+  </script>
+</body>
+</html>
