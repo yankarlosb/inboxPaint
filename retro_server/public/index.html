@@ -49,6 +49,20 @@
     🩸</div>
 
   <div id="retro-modal-container"></div>
+  
+  <!-- PWA Install Prompt -->
+  <div id="install-prompt" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1000; background: var(--horror-gray); border: 2px solid var(--horror-red); padding: 15px; max-width: 300px; box-shadow: 0 0 20px var(--horror-shadow); animation: pulse 2s infinite;">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+      <span style="font-size: 24px;">📱</span>
+      <strong style="color: var(--horror-red); font-size: 12px; letter-spacing: 1px;">INSTALAR APP</strong>
+    </div>
+    <p style="font-size: 10px; color: var(--horror-text); margin-bottom: 10px;">Instala InboxPaint en tu dispositivo para recibir notificaciones incluso con el navegador cerrado.</p>
+    <div style="display: flex; gap: 8px;">
+      <button id="install-button" class="btn-retro" style="flex: 1;">INSTALAR</button>
+      <button id="dismiss-install" class="btn-retro" style="background: var(--horror-black);">✕</button>
+    </div>
+  </div>
+  
   <div class="max-w-6xl mx-auto">
     <div class="window-title mb-4">
       <div class="title-dot"></div>
@@ -118,18 +132,68 @@
 
     // Evento de instalación de la PWA
     let deferredPrompt;
+    const installPrompt = document.getElementById('install-prompt');
+    const installButton = document.getElementById('install-button');
+    const dismissButton = document.getElementById('dismiss-install');
+
     window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('💾 PWA lista para instalar');
       e.preventDefault();
       deferredPrompt = e;
-      console.log('💾 PWA lista para instalar');
       
-      // Opcional: Mostrar banner de instalación personalizado
-      // (puedes agregar un botón en la UI para instalar la app)
+      // Mostrar el prompt personalizado
+      if (installPrompt) {
+        installPrompt.style.display = 'block';
+      }
+    });
+
+    // Click en botón instalar
+    if (installButton) {
+      installButton.addEventListener('click', async () => {
+        if (!deferredPrompt) {
+          console.log('⚠️ Prompt no disponible');
+          return;
+        }
+
+        // Mostrar el prompt nativo
+        deferredPrompt.prompt();
+        
+        // Esperar la respuesta del usuario
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`Usuario ${outcome === 'accepted' ? 'aceptó' : 'rechazó'} instalar`);
+        
+        // Limpiar el prompt
+        deferredPrompt = null;
+        installPrompt.style.display = 'none';
+      });
+    }
+
+    // Click en cerrar
+    if (dismissButton) {
+      dismissButton.addEventListener('click', () => {
+        installPrompt.style.display = 'none';
+        // Guardar que el usuario cerró el prompt
+        localStorage.setItem('install-prompt-dismissed', 'true');
+      });
+    }
+
+    // Verificar si ya se descartó antes
+    window.addEventListener('load', () => {
+      const dismissed = localStorage.getItem('install-prompt-dismissed');
+      if (dismissed === 'true') {
+        // No mostrar por 7 días
+        setTimeout(() => {
+          localStorage.removeItem('install-prompt-dismissed');
+        }, 7 * 24 * 60 * 60 * 1000);
+      }
     });
 
     window.addEventListener('appinstalled', () => {
       console.log('✅ PWA instalada correctamente');
       deferredPrompt = null;
+      if (installPrompt) {
+        installPrompt.style.display = 'none';
+      }
     });
   </script>
 </body>
