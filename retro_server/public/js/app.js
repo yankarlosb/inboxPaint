@@ -105,7 +105,15 @@
     function isOwner() { 
       const token = getUrlParam('owner');
       console.log('🔐 Checking owner:', { urlToken: token, serverToken: DEFAULT_OWNER_TOKEN, match: token === DEFAULT_OWNER_TOKEN });
-      return token && DEFAULT_OWNER_TOKEN && token === DEFAULT_OWNER_TOKEN; 
+      const isValid = token && DEFAULT_OWNER_TOKEN && token === DEFAULT_OWNER_TOKEN;
+      
+      // Guardar token en localStorage si es válido
+      if (isValid && token) {
+        localStorage.setItem(OWNER_TOKEN_KEY, token);
+        console.log('✅ Token guardado en localStorage');
+      }
+      
+      return isValid;
     }
 
     // ========== RENDER ==========
