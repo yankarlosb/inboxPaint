@@ -3,7 +3,7 @@ const { Pool } = pg;
 
 // Conexión a PostgreSQL (Supabase)
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: 'postgresql://postgres:Gmail.comGenshinDB@db.gujpnuxmsjyqbjmkjqhr.supabase.co:5432/postgres',
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
