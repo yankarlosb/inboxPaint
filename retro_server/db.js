@@ -2,8 +2,9 @@ import pg from 'pg';
 const { Pool } = pg;
 
 // Conexión a PostgreSQL (Supabase) - Connection Pooler
+// Formato: postgresql://postgres.PROJECT_REF:PASSWORD@REGION.pooler.supabase.com:6543/postgres
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres.gujpnuxmsjyqbjmkjqhr:Gmail.comGenshinDB@aws-0-us-east-1.pooler.supabase.com:6543/postgres',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres.gujpnuxmsjyqbjmkjqhr:Gmail.comGenshinDB@aws-1-us-east-1.pooler.supabase.com:6543/postgres',
   ssl: { rejectUnauthorized: false }
 });
 
