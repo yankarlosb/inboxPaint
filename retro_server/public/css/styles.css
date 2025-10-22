@@ -879,14 +879,6 @@
         font-size: 0.95rem !important;
       }
 
-      .text-sm {
-        font-size: 0.8rem;
-      }
-
-      .text-xs {
-        font-size: 0.7rem;
-      }
-
       /* Better canvas controls layout on small screens */
       .flex.gap-2.items-center {
         flex-wrap: wrap;
