@@ -186,4 +186,74 @@ Cada vez que hagas `git push` a GitHub:
 
 ---
 
+## 📱 PWA (Progressive Web App) - Instalación y Notificaciones
+
+### ¿Qué incluye la PWA?
+
+InboxPaint ahora es una **Progressive Web App** que permite:
+- ✅ **Instalar la app** en móvil/PC (sin Play Store ni App Store)
+- ✅ **Notificaciones push** incluso con la app cerrada
+- ✅ **Funciona offline** (caché de recursos)
+- ✅ **Ícono en pantalla de inicio** como app nativa
+- ✅ **Sin barra del navegador** (pantalla completa)
+
+### Cómo instalar la PWA:
+
+#### En Android (Chrome/Edge):
+1. Abre la web: `https://tu-app.onrender.com`
+2. Chrome mostrará automáticamente "Agregar a pantalla de inicio"
+3. O toca **⋮** (menú) → **Instalar aplicación**
+4. La app aparecerá en tu pantalla de inicio
+
+#### En iOS (Safari):
+1. Abre la web en Safari
+2. Toca el botón **Compartir** (📤)
+3. Selecciona **"Añadir a inicio"**
+4. Confirma el nombre y toca **"Añadir"**
+
+#### En PC (Chrome/Edge):
+1. Abre la web
+2. En la barra de dirección verás un ícono **⊕** o **💾**
+3. Click en "Instalar InboxPaint"
+4. La app se abrirá en su propia ventana
+
+### Notificaciones Push:
+
+Una vez instalada la PWA:
+1. Accede con `?owner=TU_TOKEN`
+2. Click en el botón **🔔 NOTIFICATIONS**
+3. Acepta el permiso del navegador
+4. ¡Listo! Recibirás notificaciones incluso con la app cerrada
+
+**Nota**: Las notificaciones funcionan en:
+- ✅ Android (Chrome, Edge, Samsung Internet)
+- ✅ Windows/Linux/Mac (Chrome, Edge)
+- ❌ iOS/Safari (Apple no soporta notificaciones push en PWAs aún)
+
+### Íconos de la App:
+
+La PWA requiere íconos específicos. Crea:
+- `icon-192.png` (192x192px)
+- `icon-512.png` (512x512px)
+
+Sugerencias de diseño:
+- Fondo negro (`#0a0a0a`)
+- Logo/símbolo rojo (`#ff0000`)
+- Estilo retro/horror acorde a la estética
+
+Puedes usar herramientas como:
+- https://realfavicongenerator.net/
+- https://favicon.io/
+
+Coloca los íconos en `retro_server/public/`
+
+### Archivos PWA incluidos:
+
+- ✅ `/sw.js` - Service Worker (caché + notificaciones)
+- ✅ `/manifest.json` - Configuración de la PWA
+- ✅ Registro automático en `index.html`
+
+---
+
 ¿Listo para deployar? Sigue los pasos en orden y tu app estará viva en **menos de 15 minutos**! 🎉
+

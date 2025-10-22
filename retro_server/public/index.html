@@ -8,6 +8,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>InboxPaint · Mensajes Anónimos</title>
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#ff0000">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -89,5 +95,42 @@
   </div>
 
   <script src="/js/app.js"></script>
+  
+  <!-- PWA Service Worker Registration -->
+  <script>
+    // Registrar Service Worker para PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('✅ Service Worker registrado:', registration.scope);
+            
+            // Verificar actualizaciones cada hora
+            setInterval(() => {
+              registration.update();
+            }, 60 * 60 * 1000);
+          })
+          .catch((error) => {
+            console.error('❌ Error registrando Service Worker:', error);
+          });
+      });
+    }
+
+    // Evento de instalación de la PWA
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      console.log('💾 PWA lista para instalar');
+      
+      // Opcional: Mostrar banner de instalación personalizado
+      // (puedes agregar un botón en la UI para instalar la app)
+    });
+
+    window.addEventListener('appinstalled', () => {
+      console.log('✅ PWA instalada correctamente');
+      deferredPrompt = null;
+    });
+  </script>
 </body>
 </html>
