@@ -16,16 +16,28 @@
 
     // Mobile tabs utility
     function initMobileTabs(tabsData) {
-      // Check if mobile
-      if (window.innerWidth > 768) return;
+      // Check if mobile - TEMPORARILY DISABLED FOR TESTING
+      console.log('🔍 Checking mobile tabs. Window width:', window.innerWidth);
+      
+      // TEMPORARIO: Activar tabs en todas las pantallas para testing
+      // if (window.innerWidth > 768) {
+      //   console.log('❌ Desktop mode - tabs disabled');
+      //   return;
+      // }
 
+      console.log('✅ Mobile mode - initializing tabs');
+      
       const container = qsel('.max-w-6xl');
       const desktopGrid = qsel('.desktop-grid');
       
-      if (!container || !desktopGrid) return;
+      if (!container || !desktopGrid) {
+        console.error('❌ Container or desktop grid not found');
+        return;
+      }
 
       // Add class to hide desktop grid on mobile
       desktopGrid.classList.add('use-mobile-tabs');
+      console.log('✅ Desktop grid hidden, tabs should be visible');
 
       // Create tabs container
       const tabsContainer = document.createElement('div');
@@ -229,12 +241,13 @@
     `;
 
       // Setup mobile tabs for anonymous view
-      if (window.innerWidth <= 768) {
+      // TEMPORARIO: Activado para todas las pantallas (testing)
+      // if (window.innerWidth <= 768) {
         setupAnonMobileTabs();
-      } else {
-        // Initialize form normally for desktop
-        initAnonFormListeners();
-      }
+      // } else {
+      //   // Initialize form normally for desktop
+      //   initAnonFormListeners();
+      // }
     }
 
     function initAnonFormListeners() {
@@ -1430,9 +1443,10 @@
       renderInboxItems();
       
       // Setup mobile tabs for owner view
-      if (window.innerWidth <= 768) {
+      // TEMPORARIO: Activado para todas las pantallas (testing)
+      // if (window.innerWidth <= 768) {
         setupOwnerMobileTabs();
-      }
+      // }
     }
 
     function initOwnerProfileListeners() {

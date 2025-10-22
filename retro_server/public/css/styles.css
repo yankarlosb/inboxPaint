@@ -1137,7 +1137,8 @@
 
     /* Mobile Tab Navigation System */
     .mobile-tabs {
-      display: none;
+      /* TEMPORARIO: Mostrar en todas las pantallas para testing */
+      display: block;
       background: var(--horror-gray);
       border: 2px solid var(--horror-red);
       border-radius: 0;
@@ -1205,15 +1206,21 @@
     }
 
     /* Show mobile tabs only on mobile */
+    /* TEMPORARIO: Comentado para testing en desktop
     @media (max-width: 768px) {
       .mobile-tabs {
         display: block;
       }
 
-      /* Hide original layout on mobile when using tabs */
       .desktop-grid.use-mobile-tabs {
         display: none !important;
       }
+    }
+    */
+    
+    /* TEMPORARIO: Forzar para todas las pantallas */
+    .desktop-grid.use-mobile-tabs {
+      display: none !important;
     }
 
     /* Fullscreen Canvas Mode */
