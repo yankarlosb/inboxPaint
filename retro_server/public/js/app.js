@@ -1229,7 +1229,9 @@
       <div class="mt-3 flex flex-wrap gap-2">
         <button id="refresh-inbox" class="btn-retro">⟳ REFRESH</button>
         <button id="download-all" class="btn-retro">💾 SAVE_ALL</button>
+        <button id="enable-notifications" class="btn-retro">🔔 NOTIFICATIONS</button>
       </div>
+      <div id="notification-status" style="font-size:10px; margin-top:8px; color: var(--horror-text); opacity: 0.8;"></div>
 
       <div class="mt-4 retro-panel p-4">
         <h3 class="font-semibold" style="font-size:14px; margin-bottom:12px; color: var(--horror-red); letter-spacing: 2px; text-shadow: 0 0 10px var(--horror-glow);">PUBLIC_PROFILE_DATA</h3>
@@ -1258,6 +1260,10 @@
 
       qsel('#refresh-inbox').addEventListener('click', renderInboxItems);
       qsel('#download-all').addEventListener('click', downloadAllDrawings);
+      qsel('#enable-notifications').addEventListener('click', enableNotifications);
+
+      // Actualizar estado de notificaciones
+      updateNotificationStatus();
 
       // profile wiring - load from server
       const ownerAvatarEl = qsel('#owner-avatar');
@@ -1402,15 +1408,138 @@
       else { if (arr.length === 0) { showRetroAlert('⚠ NO_DRAWINGS_AVAILABLE ⚠', 'info'); return; } arr.forEach((it) => { const a = document.createElement('a'); a.href = it.drawing; a.download = `transmission_${it.id}.png`; document.body.appendChild(a); a.click(); a.remove(); }); }
     }
 
-    // polling util - optimizado
+    // polling util - optimizado con notificaciones
     let pollHandle = null;
-    function startPolling(cb) { if (pollHandle) clearInterval(pollHandle); pollHandle = setInterval(() => { cb(); }, 10000); } // Aumentado de 4s a 10s
+    function startPolling(cb) { 
+      if (pollHandle) clearInterval(pollHandle); 
+      pollHandle = setInterval(() => { 
+        cb(); 
+        checkForNewMessages(); // Verificar nuevos mensajes para notificaciones
+      }, 10000); // 10 segundos
+    }
 
     // helper to escape HTML in messages
     function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, "&#39;"); }
 
     // dataURL -> Blob
     function dataURLtoBlob(dataurl) { const arr = dataurl.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) { u8arr[n] = bstr.charCodeAt(n); } return new Blob([u8arr], { type: mime }); }
+
+    // ========== NOTIFICACIONES ==========
+    let lastMessageCount = 0;
+    let notificationsEnabled = false;
+
+    // Habilitar notificaciones (solo accesible desde el panel del owner)
+    async function enableNotifications() {
+      // Verificar soporte del navegador
+      if (!('Notification' in window)) {
+        showRetroAlert('⚠ NOTIFICATIONS_NOT_SUPPORTED ⚠', 'warning');
+        return;
+      }
+
+      // Solicitar permiso
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          notificationsEnabled = true;
+          localStorage.setItem('notifications_enabled', 'true');
+          showRetroAlert('✓ NOTIFICATIONS_ENABLED ✓', 'success');
+          updateNotificationStatus();
+          
+          // Mostrar notificación de prueba
+          new Notification('InboxPaint - Notificaciones Activas', {
+            body: 'Recibirás notificaciones cuando lleguen nuevos mensajes',
+            icon: '/favicon.ico',
+            badge: '/favicon.ico'
+          });
+        } else {
+          showRetroAlert('⚠ NOTIFICATION_PERMISSION_DENIED ⚠', 'warning');
+        }
+      } catch (err) {
+        console.error('Error requesting notification permission:', err);
+        showRetroAlert('✗ NOTIFICATION_ERROR ✗', 'error');
+      }
+    }
+
+    // Actualizar estado visual de notificaciones
+    function updateNotificationStatus() {
+      const statusEl = qsel('#notification-status');
+      if (!statusEl) return;
+
+      const hasPermission = 'Notification' in window && Notification.permission === 'granted';
+      const enabled = localStorage.getItem('notifications_enabled') === 'true';
+
+      if (!hasPermission) {
+        statusEl.textContent = '🔔 Notificaciones: Click para activar';
+        statusEl.style.color = 'var(--jp-soft-purple)';
+      } else if (enabled) {
+        statusEl.textContent = '✅ Notificaciones activas';
+        statusEl.style.color = '#00ff00';
+        notificationsEnabled = true;
+      }
+    }
+
+    // Verificar nuevos mensajes y mostrar notificación
+    async function checkForNewMessages() {
+      // Solo verificar si las notificaciones están habilitadas
+      if (!notificationsEnabled) return;
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+      try {
+        const res = await fetch(SERVER_URL + '/api/messages', {
+          headers: { 'x-owner-token': getStoredOwnerToken() }
+        });
+        
+        if (res.ok) {
+          const messages = await res.json();
+          const currentCount = messages.length;
+          const unreadCount = messages.filter(m => !m.read).length;
+
+          // Si hay nuevos mensajes
+          if (lastMessageCount > 0 && currentCount > lastMessageCount) {
+            const newMessagesCount = currentCount - lastMessageCount;
+            const latestMessage = messages[0]; // El más reciente
+
+            // Mostrar notificación
+            const notification = new Notification('📨 Nuevo mensaje en InboxPaint', {
+              body: latestMessage.text ? latestMessage.text.substring(0, 100) : 'Mensaje con dibujo adjunto',
+              icon: '/favicon.ico',
+              badge: '/favicon.ico',
+              tag: 'inbox-message',
+              requireInteraction: false,
+              silent: false
+            });
+
+            // Click en notificación: abrir/enfocar ventana
+            notification.onclick = () => {
+              window.focus();
+              notification.close();
+              renderInboxItems(); // Refrescar lista
+            };
+          }
+
+          lastMessageCount = currentCount;
+        }
+      } catch (err) {
+        console.warn('Error checking for new messages:', err);
+      }
+    }
+
+    // Inicializar contador de mensajes (para detectar nuevos)
+    async function initMessageCount() {
+      if (!SERVER_URL) return;
+      
+      try {
+        const res = await fetch(SERVER_URL + '/api/messages', {
+          headers: { 'x-owner-token': getStoredOwnerToken() }
+        });
+        if (res.ok) {
+          const messages = await res.json();
+          lastMessageCount = messages.length;
+        }
+      } catch (err) {
+        console.warn('Could not initialize message count:', err);
+      }
+    }
 
     // --- Load config from server ---
     async function loadConfig() {
@@ -1438,6 +1567,12 @@
     (async function initSidebarProfile() {
       // Primero cargar configuración del servidor
       await loadConfig();
+
+      // Inicializar notificaciones si están habilitadas
+      notificationsEnabled = localStorage.getItem('notifications_enabled') === 'true';
+      if (notificationsEnabled) {
+        await initMessageCount(); // Inicializar contador de mensajes
+      }
 
       let p = null;
 
