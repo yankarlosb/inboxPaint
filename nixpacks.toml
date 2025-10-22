@@ -1,8 +1,0 @@
-[phases.setup]
-nixPkgs = ["nodejs-18_x"]
-
-[phases.install]
-cmds = ["cd retro_server && npm install"]
-
-[start]
-cmd = "node retro_server/server.js"

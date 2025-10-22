@@ -104,13 +104,11 @@
     // owner check
     function isOwner() { 
       const token = getUrlParam('owner');
-      console.log('🔐 Checking owner:', { urlToken: token, serverToken: DEFAULT_OWNER_TOKEN, match: token === DEFAULT_OWNER_TOKEN });
       const isValid = token && DEFAULT_OWNER_TOKEN && token === DEFAULT_OWNER_TOKEN;
       
       // Guardar token en localStorage si es válido
       if (isValid && token) {
         localStorage.setItem(OWNER_TOKEN_KEY, token);
-        console.log('✅ Token guardado en localStorage');
       }
       
       return isValid;
@@ -1416,89 +1414,6 @@
 
     // dataURL -> Blob
     function dataURLtoBlob(dataurl) { const arr = dataurl.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) { u8arr[n] = bstr.charCodeAt(n); } return new Blob([u8arr], { type: mime }); }
-
-    // --- Load config from server ---
-    async function enableNotifications() {
-      // Verificar soporte del navegador
-      if (!('Notification' in window)) {
-        showRetroAlert('⚠ NOTIFICATIONS_NOT_SUPPORTED ⚠', 'warning');
-        return;
-      }
-
-      // Verificar si ya están permitidas
-      if (Notification.permission === 'granted') {
-        notificationsEnabled = true;
-        localStorage.setItem('notifications_enabled', 'true');
-        showRetroAlert('✓ NOTIFICATIONS_ALREADY_ENABLED ✓', 'success');
-        updateNotificationStatus();
-        return;
-      }
-
-      // Solicitar permiso - compatible con navegadores antiguos y nuevos
-      try {
-        // Intentar con promesa (navegadores modernos)
-        let permission;
-        if (Notification.requestPermission.length === 0) {
-          // Navegadores modernos que devuelven promesa
-          permission = await Notification.requestPermission();
-        } else {
-          // Navegadores antiguos que usan callback
-          permission = await new Promise((resolve) => {
-            Notification.requestPermission(resolve);
-          });
-        }
-
-        if (permission === 'granted') {
-          notificationsEnabled = true;
-          localStorage.setItem('notifications_enabled', 'true');
-          await initMessageCount(); // Inicializar contador
-          showRetroAlert('✓ NOTIFICATIONS_ENABLED ✓', 'success');
-          updateNotificationStatus();
-          
-          // Mostrar notificación de prueba
-          setTimeout(() => {
-            try {
-              const notification = new Notification('InboxPaint - Notificaciones Activas', {
-                body: 'Recibirás notificaciones cuando lleguen nuevos mensajes',
-                icon: '/favicon.ico',
-                badge: '/favicon.ico',
-                tag: 'test-notification'
-              });
-              
-              // Auto-cerrar después de 4 segundos
-              setTimeout(() => notification.close(), 4000);
-            } catch (err) {
-              console.warn('No se pudo mostrar notificación de prueba:', err);
-            }
-          }, 500);
-        } else if (permission === 'denied') {
-          showRetroAlert('⚠ NOTIFICATION_PERMISSION_DENIED // REVISA_CONFIGURACIÓN_DEL_NAVEGADOR ⚠', 'warning');
-        } else {
-          showRetroAlert('⚠ NOTIFICATION_PERMISSION_DISMISSED ⚠', 'info');
-        }
-      } catch (err) {
-        console.error('Error requesting notification permission:', err);
-        showRetroAlert('✗ NOTIFICATION_ERROR: ' + err.message + ' ✗', 'error');
-      }
-    }
-
-    // Actualizar estado visual de notificaciones
-    function updateNotificationStatus() {
-      const statusEl = qsel('#notification-status');
-      if (!statusEl) return;
-
-      const hasPermission = 'Notification' in window && Notification.permission === 'granted';
-      const enabled = localStorage.getItem('notifications_enabled') === 'true';
-
-      if (!hasPermission) {
-        statusEl.innerHTML = '🔔 Notificaciones: Click para activar<br><span style="font-size:8px; opacity:0.6;">(Requiere mantener la página abierta)</span>';
-        statusEl.style.color = 'var(--jp-soft-purple)';
-      } else if (enabled) {
-        statusEl.innerHTML = '✅ Notificaciones activas<br><span style="font-size:8px; opacity:0.6;">(Verificando cada 10 segundos)</span>';
-        statusEl.style.color = '#00ff00';
-        notificationsEnabled = true;
-      }
-    }
 
     // Verificar nuevos mensajes y mostrar notificación
     async function checkForNewMessages() {

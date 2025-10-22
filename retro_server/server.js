@@ -1,32 +1,3 @@
-/*
-  server.js - Node + Express minimal backend for the Retro Inbox demo
-  ---------------------------------------------------------------
-  - Node 18+ (ES modules)
-  - Endpoints:
-      POST   /api/messages       -> multipart/form-data or application/json (text) (public)
-      GET    /api/messages       -> list messages (public read)
-      POST   /api/messages/:id/read  -> mark as read (requires OWNER_TOKEN)
-      POST   /api/profile        -> save profile (requires OWNER_TOKEN)
-      GET    /api/profile        -> get profile
-  - Files uploaded are stored under ./uploads and served at /uploads/
-  - Simple JSON "DB" persisted to ./db.json
-  - Owner authentication: uses env var OWNER_TOKEN (simple shared-secret).
-
-  USAGE (local dev):
-    1) mkdir retro-server && cd retro-server
-    2) save this file as server.js
-    3) create package.json (see snippet below) or run `npm init -y` and edit
-    4) npm install express multer cors
-    5) create folders: mkdir uploads
-    6) export OWNER_TOKEN=owner123  (or set in Windows via set)
-    7) node server.js
-
-  Notes: This example is intentionally minimal for demonstration. In production add
-  - real DB (Postgres, Mongo, etc.)
-  - authentication (JWT, sessions), rate-limiting, input validation
-  - HTTPS / reverse proxy
-*/
-
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
