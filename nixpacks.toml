@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs-18_x"]
 
 [phases.install]
-cmds = ["cd retro_server && npm ci"]
+cmds = ["cd retro_server && npm install"]
 
 [start]
-cmd = "cd retro_server && npm start"
+cmd = "node retro_server/server.js"

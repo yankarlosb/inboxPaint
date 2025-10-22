@@ -1,0 +1,24 @@
+{
+  "name": "inboxpaint",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Mensajería anónima con canvas de dibujo y estética horror retro",
+  "main": "retro_server/server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node retro_server/server.js",
+    "dev": "nodemon retro_server/server.js",
+    "install": "cd retro_server && npm install"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "multer": "^2.0.2"
+  },
+  "keywords": ["anonymous", "messaging", "canvas", "drawing", "retro", "horror"],
+  "author": "Yan Carlos",
+  "license": "MIT"
+}
