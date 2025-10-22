@@ -1,5 +1,9 @@
 
-    const SERVER_URL = 'http://localhost:3000'; // EJ: 'http://localhost:3000'  <-- poner aquí la URL del servidor si quieres backend
+    // Detectar URL del servidor automáticamente (producción vs desarrollo)
+    const SERVER_URL = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000' 
+      : window.location.origin;
+    
     let DEFAULT_OWNER_TOKEN = null; // Se cargará dinámicamente desde el servidor
     const OWNER_TOKEN_KEY = 'retro_owner_token'; // sigue permitiendo lectura local para fallback privado
     const STORAGE_KEY = 'retro_inbox';
@@ -1402,17 +1406,23 @@
 
     // --- Load config from server ---
     async function loadConfig() {
+      console.log('🔧 Intentando cargar config desde:', SERVER_URL);
       if (SERVER_URL) {
         try {
           const res = await fetch(SERVER_URL + '/api/config');
+          console.log('📡 Response config:', res.status, res.ok);
           if (res.ok) {
             const config = await res.json();
             DEFAULT_OWNER_TOKEN = config.ownerToken;
-            console.log('✅ Configuración cargada desde el servidor');
+            console.log('✅ Configuración cargada desde el servidor. Token:', DEFAULT_OWNER_TOKEN);
+          } else {
+            console.error('❌ Error al cargar config, status:', res.status);
           }
         } catch (err) {
-          console.warn('⚠️ No se pudo cargar la configuración del servidor', err);
+          console.error('⚠️ No se pudo cargar la configuración del servidor', err);
         }
+      } else {
+        console.warn('⚠️ SERVER_URL está vacío, no se puede cargar config');
       }
     }
 
