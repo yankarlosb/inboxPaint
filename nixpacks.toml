@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["nodejs-18_x"]
+
+[phases.install]
+cmds = ["cd retro_server && npm ci"]
+
+[start]
+cmd = "cd retro_server && npm start"
