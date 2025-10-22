@@ -1,10 +1,10 @@
 import pg from 'pg';
 const { Pool } = pg;
 
-// Conexión a PostgreSQL (Supabase)
+// Conexión a PostgreSQL (Supabase) - Connection Pooler
 const pool = new Pool({
-  connectionString: 'postgresql://postgres:Gmail.comGenshinDB@db.gujpnuxmsjyqbjmkjqhr.supabase.co:5432/postgres',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres.gujpnuxmsjyqbjmkjqhr:Gmail.comGenshinDB@aws-0-us-east-1.pooler.supabase.com:6543/postgres',
+  ssl: { rejectUnauthorized: false }
 });
 
 // Inicializar tablas
