@@ -1229,9 +1229,7 @@
       <div class="mt-3 flex flex-wrap gap-2">
         <button id="refresh-inbox" class="btn-retro">⟳ REFRESH</button>
         <button id="download-all" class="btn-retro">💾 SAVE_ALL</button>
-        <button id="enable-notifications" class="btn-retro">🔔 NOTIFICATIONS</button>
       </div>
-      <div id="notification-status" style="font-size:10px; margin-top:8px; color: var(--horror-text); opacity: 0.8;"></div>
 
       <div class="mt-4 retro-panel p-4">
         <h3 class="font-semibold" style="font-size:14px; margin-bottom:12px; color: var(--horror-red); letter-spacing: 2px; text-shadow: 0 0 10px var(--horror-glow);">PUBLIC_PROFILE_DATA</h3>
@@ -1260,10 +1258,6 @@
 
       qsel('#refresh-inbox').addEventListener('click', renderInboxItems);
       qsel('#download-all').addEventListener('click', downloadAllDrawings);
-      qsel('#enable-notifications').addEventListener('click', enableNotifications);
-
-      // Actualizar estado de notificaciones
-      updateNotificationStatus();
 
       // profile wiring - load from server
       const ownerAvatarEl = qsel('#owner-avatar');
@@ -1408,13 +1402,12 @@
       else { if (arr.length === 0) { showRetroAlert('⚠ NO_DRAWINGS_AVAILABLE ⚠', 'info'); return; } arr.forEach((it) => { const a = document.createElement('a'); a.href = it.drawing; a.download = `transmission_${it.id}.png`; document.body.appendChild(a); a.click(); a.remove(); }); }
     }
 
-    // polling util - optimizado con notificaciones
+    // polling util - optimizado
     let pollHandle = null;
     function startPolling(cb) { 
       if (pollHandle) clearInterval(pollHandle); 
       pollHandle = setInterval(() => { 
         cb(); 
-        checkForNewMessages(); // Verificar nuevos mensajes para notificaciones
       }, 10000); // 10 segundos
     }
 
@@ -1424,11 +1417,7 @@
     // dataURL -> Blob
     function dataURLtoBlob(dataurl) { const arr = dataurl.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) { u8arr[n] = bstr.charCodeAt(n); } return new Blob([u8arr], { type: mime }); }
 
-    // ========== NOTIFICACIONES ==========
-    let lastMessageCount = 0;
-    let notificationsEnabled = false;
-
-    // Habilitar notificaciones (solo accesible desde el panel del owner)
+    // --- Load config from server ---
     async function enableNotifications() {
       // Verificar soporte del navegador
       if (!('Notification' in window)) {
@@ -1646,12 +1635,6 @@
     (async function initSidebarProfile() {
       // Primero cargar configuración del servidor
       await loadConfig();
-
-      // Inicializar notificaciones si están habilitadas
-      notificationsEnabled = localStorage.getItem('notifications_enabled') === 'true';
-      if (notificationsEnabled) {
-        await initMessageCount(); // Inicializar contador de mensajes
-      }
 
       let p = null;
 
