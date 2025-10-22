@@ -42,9 +42,9 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const PORT = process.env.PORT || 3000;
 const OWNER_TOKEN = process.env.OWNER_TOKEN || 'owner123';
-const DB_FILE = './db.json';
-const UPLOADS_DIR = './uploads';
-const PROFILE_DIR = './profile';
+const DB_FILE = path.join(__dirname, 'db.json');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const PROFILE_DIR = path.join(__dirname, 'profile');
 const PROFILE_FILE = path.join(PROFILE_DIR, 'owner.json');
 
 // ensure folders
@@ -81,8 +81,8 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 images
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(express.static('public')); // serve static files from public/
-app.use('/uploads', express.static(path.resolve(UPLOADS_DIR))); // serve uploaded files
+app.use(express.static(path.join(__dirname, 'public'))); // serve static files from public/
+app.use('/uploads', express.static(UPLOADS_DIR)); // serve uploaded files
 
 const upload = multer({ dest: UPLOADS_DIR });
 
