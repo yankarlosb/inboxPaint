@@ -1,10 +1,6 @@
-    /* ========= CONFIG =========
-       - Para usar un backend, asigna la URL del servidor a SERVER_URL (ej: 'http://localhost:3000')
-       - Si SERVER_URL está vacío (''), se usa localStorage como fallback.
-       - OWNER token: no hay UI para cambiarlo (seguridad). Debes acceder con ?owner=TU_TOKEN.
-    */
+
     const SERVER_URL = 'http://localhost:3000'; // EJ: 'http://localhost:3000'  <-- poner aquí la URL del servidor si quieres backend
-    const DEFAULT_OWNER_TOKEN = 'owner123';
+    let DEFAULT_OWNER_TOKEN = null; // Se cargará dinámicamente desde el servidor
     const OWNER_TOKEN_KEY = 'retro_owner_token'; // sigue permitiendo lectura local para fallback privado
     const STORAGE_KEY = 'retro_inbox';
     const PROFILE_KEY = 'retro_profile';
@@ -102,7 +98,10 @@
     function newid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
     // owner check
-    function isOwner() { const token = getUrlParam('owner'); return token === 'owner123'; }
+    function isOwner() { 
+      const token = getUrlParam('owner'); 
+      return token && DEFAULT_OWNER_TOKEN && token === DEFAULT_OWNER_TOKEN; 
+    }
 
     // ========== RENDER ==========
     function render() { const root = qsel('#view-root'); root.innerHTML = ''; if (isOwner()) renderOwnerView(root); else renderAnonView(root); }
@@ -1400,8 +1399,27 @@
     // dataURL -> Blob
     function dataURLtoBlob(dataurl) { const arr = dataurl.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]); let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) { u8arr[n] = bstr.charCodeAt(n); } return new Blob([u8arr], { type: mime }); }
 
+    // --- Load config from server ---
+    async function loadConfig() {
+      if (SERVER_URL) {
+        try {
+          const res = await fetch(SERVER_URL + '/api/config');
+          if (res.ok) {
+            const config = await res.json();
+            DEFAULT_OWNER_TOKEN = config.ownerToken;
+            console.log('✅ Configuración cargada desde el servidor');
+          }
+        } catch (err) {
+          console.warn('⚠️ No se pudo cargar la configuración del servidor', err);
+        }
+      }
+    }
+
     // --- initial wiring: set sidebar profile from saved profile ---
     (async function initSidebarProfile() {
+      // Primero cargar configuración del servidor
+      await loadConfig();
+
       let p = null;
 
       // Try to load from server first
@@ -1429,8 +1447,8 @@
         if (p.web && !p.web.startsWith('http')) webLink.href = 'https://' + p.web;
         if (p.avatar) qsel('#profile-avatar').src = p.avatar;
       }
-    })();
 
-    // initial render
-    render();
+      // Render después de cargar todo
+      render();
+    })();
 

@@ -139,6 +139,8 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # Others
-uploads/
+uploads/*
+!uploads/.gitkeep
 references/
-profile/
+profile/*
+!profile/.gitkeep

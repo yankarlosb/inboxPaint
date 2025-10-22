@@ -32,6 +32,13 @@ import cors from 'cors';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+// Cargar variables de entorno desde .env en la raíz del proyecto
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const PORT = process.env.PORT || 3000;
 const OWNER_TOKEN = process.env.OWNER_TOKEN || 'owner123';
@@ -160,6 +167,13 @@ app.get('/api/profile', (req, res) => {
     console.error('Error reading profile:', err);
     res.json(null);
   }
+});
+
+// Public: get config (returns owner token for client-side validation)
+app.get('/api/config', (req, res) => {
+  res.json({
+    ownerToken: OWNER_TOKEN
+  });
 });
 
 // Optional: delete message (owner-only) - not used by default UI, but provided
