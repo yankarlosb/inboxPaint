@@ -23,7 +23,18 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 images
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(express.static(path.join(__dirname, 'public'))); // serve static files from public/
+
+// Disable caching for static files to ensure updates are loaded
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
+
 app.use('/uploads', express.static(UPLOADS_DIR)); // serve uploaded files
 
 const upload = multer({ dest: UPLOADS_DIR });
