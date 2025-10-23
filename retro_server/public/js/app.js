@@ -1409,13 +1409,14 @@
       </div>
 
       <div class="mt-4 retro-panel p-4">
-        <h3 class="font-semibold" style="font-size:14px; margin-bottom:12px; color: var(--horror-red); letter-spacing: 2px; text-shadow: 0 0 10px var(--horror-glow);">PUBLIC_PROFILE_DATA</h3>
         <div class="flex flex-col sm:flex-row gap-3 items-center sm:items-start mt-2">
           <img id="owner-avatar" src="" alt="avatar" class="avatar" />
           <div class="flex-1 w-full">
             <input type="text" id="owner-name" class="w-full" placeholder="> name" style="margin-bottom:10px;" />
+            <input type="text" id="owner-title" class="w-full" placeholder="> title (ej: Ilustrador retro)" style="margin-bottom:10px;" />
             <input type="text" id="owner-web" class="w-full" placeholder="> location" style="margin-bottom:10px;" />
-            <textarea id="owner-bio" class="w-full" rows="2" placeholder="> status" style="margin-bottom:10px;"></textarea>
+            <textarea id="owner-bio" class="w-full" rows="2" placeholder="> bio (sobre ti)" style="margin-bottom:10px;"></textarea>
+            <textarea id="owner-description" class="w-full" rows="2" placeholder="> description (sobre el sitio)" style="margin-bottom:10px;"></textarea>
             <div class="mt-2 space-y-2">
               <div class="flex flex-col sm:flex-row gap-2">
                 <input id="owner-avatar-file" type="file" accept="image/*" class="hidden" />
@@ -1462,17 +1463,21 @@
           .then(profile => {
             if (profile) {
               qsel('#owner-name').value = profile.name || '';
+              qsel('#owner-title').value = profile.title || '';
               qsel('#owner-web').value = profile.web || '';
               qsel('#owner-bio').value = profile.bio || '';
+              qsel('#owner-description').value = profile.description || '';
               ownerAvatarEl.src = profile.avatar || qsel('#profile-avatar').src;
             }
           })
           .catch(err => console.warn('Could not load profile from server', err));
       } else {
-        const profile = loadProfileLocal() || { name: 'Owner', web: '', bio: '', avatar: '' };
+        const profile = loadProfileLocal() || { name: 'Owner', title: '', web: '', bio: '', description: '', avatar: '' };
         qsel('#owner-name').value = profile.name || '';
+        qsel('#owner-title').value = profile.title || '';
         qsel('#owner-web').value = profile.web || '';
         qsel('#owner-bio').value = profile.bio || '';
+        qsel('#owner-description').value = profile.description || '';
         ownerAvatarEl.src = profile.avatar || qsel('#profile-avatar').src;
       }
 
@@ -1492,8 +1497,10 @@
       qsel('#save-profile').addEventListener('click', async () => {
         const profile = { 
           name: qsel('#owner-name').value, 
+          title: qsel('#owner-title').value,
           web: qsel('#owner-web').value, 
-          bio: qsel('#owner-bio').value, 
+          bio: qsel('#owner-bio').value,
+          description: qsel('#owner-description').value,
           avatar: ownerAvatarEl.src 
         };
         
@@ -1525,8 +1532,10 @@
         }
         
         // Update sidebar to reflect changes
-        qsel('#profile-name').textContent = profile.name; 
+        qsel('#profile-name').textContent = profile.name;
+        qsel('#profile-title').textContent = profile.title || '...';
         qsel('#profile-bio').textContent = profile.bio;
+        qsel('#profile-description').textContent = profile.description || '...';
         
         const webLink = qsel('#profile-web');
         webLink.textContent = profile.web || 'mipagina.oldschool';
@@ -1828,7 +1837,9 @@
       // Update sidebar with profile data
       if (profile) {
         qsel('#profile-name').textContent = profile.name || qsel('#profile-name').textContent;
+        qsel('#profile-title').textContent = profile.title || '...';
         qsel('#profile-bio').textContent = profile.bio || qsel('#profile-bio').textContent;
+        qsel('#profile-description').textContent = profile.description || '...';
         
         const webLink = qsel('#profile-web');
         webLink.textContent = profile.web || webLink.textContent;

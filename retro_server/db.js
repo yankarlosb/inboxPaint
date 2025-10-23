@@ -29,17 +29,32 @@ export async function initDB() {
       CREATE TABLE IF NOT EXISTS profile (
         id INTEGER PRIMARY KEY DEFAULT 1,
         name VARCHAR(200),
+        title VARCHAR(100),
         bio TEXT,
+        description TEXT,
         web VARCHAR(500),
         avatar TEXT,
         CONSTRAINT single_profile CHECK (id = 1)
       );
     `);
 
+    // Agregar columnas nuevas si no existen (migración)
+    await client.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profile' AND column_name='title') THEN
+          ALTER TABLE profile ADD COLUMN title VARCHAR(100);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profile' AND column_name='description') THEN
+          ALTER TABLE profile ADD COLUMN description TEXT;
+        END IF;
+      END $$;
+    `);
+
     // Insertar perfil por defecto si no existe
     await client.query(`
-      INSERT INTO profile (id, name, bio, web, avatar)
-      VALUES (1, 'Owner', 'Envíame un mensaje anónimo', '', '')
+      INSERT INTO profile (id, name, title, bio, description, web, avatar)
+      VALUES (1, 'Owner', '', 'Envíame un mensaje anónimo', '', '', '')
       ON CONFLICT (id) DO NOTHING;
     `);
 
@@ -92,15 +107,15 @@ export async function deleteMessage(id) {
 // ========== PERFIL ==========
 
 export async function getProfile() {
-  const result = await pool.query('SELECT name, bio, web, avatar FROM profile WHERE id = 1');
+  const result = await pool.query('SELECT name, title, bio, description, web, avatar FROM profile WHERE id = 1');
   return result.rows[0] || null;
 }
 
 export async function updateProfile(profile) {
-  const { name, bio, web, avatar } = profile;
+  const { name, title, bio, description, web, avatar } = profile;
   const result = await pool.query(
-    'UPDATE profile SET name = $1, bio = $2, web = $3, avatar = $4 WHERE id = 1 RETURNING *',
-    [name, bio, web, avatar]
+    'UPDATE profile SET name = $1, title = $2, bio = $3, description = $4, web = $5, avatar = $6 WHERE id = 1 RETURNING *',
+    [name, title, bio, description, web, avatar]
   );
   return result.rows[0];
 }
