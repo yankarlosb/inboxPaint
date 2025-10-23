@@ -15,6 +15,7 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 const PORT = process.env.PORT || 3000;
 const OWNER_TOKEN = process.env.OWNER_TOKEN || 'owner123';
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const BUILD_VERSION = Date.now(); // Cache busting version
 
 // ensure folders
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -160,6 +161,20 @@ app.delete('/api/messages/:id', async (req, res) => {
 
 // Health
 app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
+
+// Serve index.html with injected version for cache busting
+app.get('/', (req, res) => {
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  let html = fs.readFileSync(indexPath, 'utf8');
+  
+  // Replace version placeholders with build version
+  html = html.replace(/\/css\/styles\.css\?v=[^"]+/g, `/css/styles.css?v=${BUILD_VERSION}`);
+  html = html.replace(/\/js\/app\.js\?v=[^"]+/g, `/js/app.js?v=${BUILD_VERSION}`);
+  
+  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.send(html);
+});
 
 // Inicializar DB y servidor
 (async () => {
